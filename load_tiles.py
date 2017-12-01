@@ -3,6 +3,7 @@ from pylab import *
 matplotlib.use('Agg')
 from astropy.io import fits
 from fit_coarse_channels import fit_bandpass, fit_sigma
+import numpy as np
 
 import RTS_cals
 
@@ -23,7 +24,7 @@ class tile_loader:
         else:
             self.obs_list = ['%s/%s' % (basepath, obsid) for obsid in obsids]
 
-        print self.obs_list
+        #print self.obs_list
 
         for obs in self.obs_list:
 
@@ -66,10 +67,101 @@ class tile_loader:
             self.allx_obs_dict[obs[-10:]] = self.all_xx
             self.ally_obs_dict[obs[-10:]] = self.all_yy
 
-        print self.allx_obs_dict
+        #print self.allx_obs_dict
+
+
+    #Calculate how steep the bandpass is
+    def calculate_steepness(self, obsid, antenna):
+
+        #Fit a one-dim polynomial (i.e.a line)
+        #Calculate how steep it is (i.e. the gradient)
+        print "Calculating for obsid = " + str(obsid) + "antenna = " + str(antenna)
+        print "Where length of obsid for x is " +  str(len(self.allx_obs_dict[obsid]))
+        print "and length of obsid for y is " + str(len(self.ally_obs_dict[obsid]))
+        if self.allx_obs_dict[obsid][antenna] is None or self.ally_obs_dict[obsid][antenna] is None:
+            print "Can't continue - antenna turns out to be None"
+            return (0,0)
+        print 'length of dict is %d' %len(self.allx_obs_dict[obsid][antenna][0])
+        print 'x dict is'
+        print self.allx_obs_dict[obsid][antenna][0]
+        zx = np.polyfit(arange(763), self.allx_obs_dict[obsid][antenna][0], 1)
+        print zx
+        zy = np.polyfit(arange(763), self.ally_obs_dict[obsid][antenna][0], 1)
+        print zy
+        return (np.real(zx[0]), np.real(zy[0]))
+
+    #Copied in case I screw this up - adding y's to this calculation
+    # def calculate_steepness(self, obsid, antenna):
+    #
+    #     #Fit a one-dim polynomial (i.e.a line)
+    #     #Calculate how steep it is (i.e. the gradient)
+    #     print "Calculating for obsid = " + str(obsid) + "antenna = " + str(antenna)
+    #     print "Where length of obsid for x is " +  str(len(self.allx_obs_dict[obsid]))
+    #     print "and length of obsid for y is " + str(len(self.ally_obs_dict[obsid]))
+    #     if self.allx_obs_dict[obsid][antenna] is None:
+    #         print "Can't continue - antenna turns out to be None"
+    #         return 0
+    #     print 'length of dict is %d' %len(self.allx_obs_dict[obsid][antenna][0])
+    #     print 'dict is'
+    #     print self.allx_obs_dict[obsid][antenna][0]
+    #     z = np.polyfit(arange(763), self.allx_obs_dict[obsid][antenna][0], 1)
+    #     print z
+    #     return z[0]
+
+    #This method will run over the observations collected, and calculate a "feature set" for each observation. I can then use that
+    #to identify observations with outlier features
+    def identify_features(self):
+
+        for obs in ['1061311664',]:
+            steepnesses = [self.calculate_steepness(obs, antenna) for antenna in range(128)]
+            print "steepnesses are:"
+            print steepnesses
+
+            #Find anything which is more than 2 std devs from average
+            xs = [x for (x,y) in steepnesses]
+            ys = [y for (x, y) in steepnesses]
+
+            stddev = np.std(xs)
+            avg = np.mean(xs)
+            print "X Stddev is " + str(stddev) + "and average is " + str(avg)
+            for i, steepness in enumerate(xs):
+                #if steepness is None:
+                #    continue
+                if np.abs(np.real(steepness)) >= (np.abs(avg) + 3.0 * stddev):
+                    print "FLAGGED Steepness is" + str(steepness)
+                    plot(tileloader.allx_obs_dict['1061311664'][i][0], label='x amps')
+                    plot(tileloader.ally_obs_dict['1061311664'][i][0], label='y amps')
+                    title('X amp flagged: Antenna %d for OBSID 1061311664' %(i))
+                    savefig('X_antenna_%s_too_steep.png' % (i))
+
+            stddev = np.std(ys)
+            avg = np.mean(ys)
+            print "Y Stddev is " + str(stddev) + "and average is " + str(avg)
+            for i, steepness in enumerate(ys):
+                #if steepness is None:
+                #    continue
+                if np.abs(np.real(steepness)) >= (np.abs(avg) + 3.0 * stddev):
+                    print "FLAGGED Steepness is" + str(steepness)
+                    plot(tileloader.allx_obs_dict['1061311664'][i][0], label='x amps')
+                    plot(tileloader.ally_obs_dict['1061311664'][i][0], label='y amps')
+                    title('Y amp flagged: Antenna %d for OBSID 1061311664' %(i))
+                    savefig('Y_Antenna_%s_too_steep.png' % (i))
+
 
 tileloader = tile_loader()
-tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = ['1061306296', ])
+tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = ['1061311664', ])
+tileloader.calculate_steepness('1061311664', 20)
+tileloader.identify_features()
+
+#Plot a 'good' one:
+plot(tileloader.allx_obs_dict['1061311664'][32][0], label='x amps')
+plot(tileloader.ally_obs_dict['1061311664'][32][0], label='y amps')
+title('Good tile: Antenna 32 for OBSID 1061311664')
+show()
+#Let's plot all the ones that are a bit off and have a look-see, shall we
+#plot(tileloader.allx_obs_dict['1061311664'][1][0])
+#title("Antenna 2 for OBSID 1061311664")
+#show()
 
 #obs_list = glob.glob('%s/1*' % sys.argv[1])
 #obs_list = ['%s/1061311664'% sys.argv[1], '%s/1061311784'% sys.argv[1], '%s/1061312032'% sys.argv[1], '%s/1061312152'% sys.argv[1]]

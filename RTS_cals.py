@@ -1,28 +1,23 @@
-from numpy import cos, sin,array, matrix, inner, conj, real, imag,zeros,arange,shape, sqrt, ones
+from numpy import cos, sin,array, matrix, inner, conj, real, imag,zeros,arange,shape
 from astropy.io import fits
 
 class rts_cal():
     def __init__(self):
         self.n_ants = 128
-        self.n_bands = 24
         self.antennas=[]
         self.flagged_antennas = None
         for i in range(self.n_ants):
             self.antennas.append(rts_antenna(i))
         self.freqs = None
         self.metafile = None
-        self.BP_weights = [None] * self.n_bands
-
 
     # Each BP file contains all antennas, so load must occur at top level
 
-    def load_BP_jones(self,band,path='./',raw=False,add_flagged=True,chan_bw=0.04):
+    def load_BP_jones(self,band,path='./',raw=False,add_flagged=True):
         calsfile = path + 'BandpassCalibration_node%03d.dat' % band
         cals_file = open(calsfile)
+        cals_file.readline() # header
 
-        present_freqs = ((cals_file.readline()).split(','))
-        present_freqs = [int(round(float(p)/chan_bw)) for p in present_freqs]
-        flagged_channels = array([i for i in range(32) if i not in present_freqs])
         all_gains = []
 
         all_antennas = []
@@ -52,6 +47,10 @@ class rts_cal():
             xy_gains = all_gains[2::8]
             yx_gains = all_gains[4::8]
             yy_gains = all_gains[6::8]
+#            xx_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 0]
+#            xy_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 2]
+#            yx_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 4]
+#            yy_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 6]
         else:
             xx_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 1]
             xy_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 3]
@@ -70,23 +69,18 @@ class rts_cal():
             self.antennas[antenna_number[i]].BP_jones[band-1] = jones
             if(add_flagged):
                 # Add in flagged channels
-                for ch in range(32):
-                    if(ch in flagged_channels):
-                        self.antennas[antenna_number[i]].BP_jones[band-1].insert(ch,flagged_jones)
-                self.BP_weights[band-1] = ones(32)
-                self.BP_weights[band-1][flagged_channels] = 0.0
-            else:
-                self.BP_weights[band-1] = ones(len(present_channels))
-
-#                self.antennas[antenna_number[i]].BP_jones[band-1].insert(0,flagged_jones)
-#                self.antennas[antenna_number[i]].BP_jones[band-1].insert(0,flagged_jones)
-#                self.antennas[antenna_number[i]].BP_jones[band-1].append(flagged_jones)
-#                self.antennas[antenna_number[i]].BP_jones[band-1].append(flagged_jones)
+                self.antennas[antenna_number[i]].BP_jones[band-1].insert(0,flagged_jones)
+                self.antennas[antenna_number[i]].BP_jones[band-1].insert(0,flagged_jones)
+                self.antennas[antenna_number[i]].BP_jones[band-1].append(flagged_jones)
+                self.antennas[antenna_number[i]].BP_jones[band-1].append(flagged_jones)
                 # center channel
-#                self.antennas[antenna_number[i]].BP_jones[band-1].insert(16,flagged_jones)
+                self.antennas[antenna_number[i]].BP_jones[band-1].insert(16,flagged_jones)
+
+            all_jones.append(jones)
+
+        # Add in flagged channels
 
 
-#            all_jones.append(jones)
 
         cals_file.close()
 
@@ -157,33 +151,21 @@ class rts_cal():
 
 
 
-    def all_BP_jones(self,antenna=0,reverse_bands=False,cent_chan=12):
+    def all_BP_jones(self,antenna=0,reverse_bands=False):
         all_BP_xx = []
         all_BP_yy = []
         a = self.antennas[antenna]
         if(a!=None):
-            for b,B in enumerate(a.BP_jones):
-                band_number = b + cent_chan - 12
-                if(band_number < 129):
-                   if(B is not None):
+            if(reverse_bands):
+                for B in reversed(a.BP_jones):
+                    if(B!=None):
                         for chan in B:
                             all_BP_xx.append(chan[0,0])
-                else:
-                    if(a.BP_jones[self.n_bands-(band_number-128)] is not None):
-                        for chan in (a.BP_jones[self.n_bands-(band_number-128)]):
+            else:
+                for B in a.BP_jones:
+                    if(B!=None):
+                        for chan in B:
                             all_BP_xx.append(chan[0,0])
-
-
-#            if(reverse_bands):
-#                for B in reversed(a.BP_jones):
-#                    if(B is not None):
-#                        for chan in B:
-#                            all_BP_xx.append(chan[0,0])
-#            else:
-#                for B in a.BP_jones:
-#                    if(B is not None):
-#                        for chan in B:
-#                            all_BP_xx.append(chan[0,0])
         return all_BP_xx
 
     def BP_jones_amps(self,antenna=0):
