@@ -6,6 +6,7 @@ from fit_coarse_channels import fit_bandpass, fit_sigma
 import numpy as np
 
 import RTS_cals
+import CalsLoader
 
 obsIDs = ['1061311664','1061314592']
 
@@ -23,53 +24,59 @@ class tile_loader:
 
     def load_observations(self, basepath = './', obsids = None):
 
-        if obsids == None:
-            self.obs_list = glob.glob('%s/1*' % basepath)
-        else:
-            self.obs_list = ['%s/%s' % (basepath, obsid) for obsid in obsids]
+        cals_loader = CalsLoader.CalsLoader()
+        cals_loader.plotAmplitudes(basepath + '/'+ obsIDs[1])
+        print "Printing cals loader JPX[2]"
+        print cals_loader.JPX[2]
 
-        #print self.obs_list
 
-        for obs in self.obs_list:
-
-            metafile = (glob.glob('%s/*metafits*' % obs))[0]
-            meta_file = fits.open(metafile)
-            flags = meta_file[1].data['Flag']
-            flags = flags[::2]
-            tiles = meta_file[1].data['Tilename']
-            tiles = tiles[::2]
-            di_files = glob.glob('%s/DI*.dat' % obs)
-            bp_files = glob.glob('%s/Band*.dat' % obs)
-            if(len(di_files) != 24 or len(bp_files) !=24):
-                print 'Missing cal files: ', obs, len(di_files), len(bp_files)
-                self.missing_list.append(obs)
-                continue
-
-            rts_cal = RTS_cals.rts_cal()
-            rts_cal.load_all_DI_jones(path='%s/' % obs)
-            rts_cal.load_all_BP_jones(path='%s/' % obs, raw=True,add_flagged=False)
-            rts_cal.load_metadata(metafile)
-            rts_cal.apply_metafits_gains()
-            rts_cal.form_single_jones()
-            low_gain = False
-            high_gain = False
-            high_tiles = []
-            low_tiles = []
-
-            for i,a in enumerate(rts_cal.antennas):
-                if(rts_cal.antennas[i].BP_jones[0] is not None):
-                    xx_abs,yy_abs = rts_cal.all_single_jones(antenna=i,reverse_bands=True,correct_gain_jump=False,conjugate_jones=False)
-                    xx_abs = (xx_abs * conj(xx_abs))
-                    yy_abs = (yy_abs * conj(yy_abs))
-                    if(self.all_xx[i] == None):
-                        self.all_xx[i] = [xx_abs]
-                        self.all_yy[i] = [yy_abs]
-                    else:
-                        self.all_xx[i].append(xx_abs)
-                        self.all_yy[i].append(yy_abs)
-
-            self.allx_obs_dict[obs[-10:]] = self.all_xx
-            self.ally_obs_dict[obs[-10:]] = self.all_yy
+        # if obsids == None:
+        #     self.obs_list = glob.glob('%s/1*' % basepath)
+        # else:
+        #     self.obs_list = ['%s/%s' % (basepath, obsid) for obsid in obsids]
+        #
+        # #print self.obs_list
+        #
+        # for obs in self.obs_list:
+        #
+        #     metafile = (glob.glob('%s/*metafits*' % obs))[0]
+        #     meta_file = fits.open(metafile)
+        #     flags = meta_file[1].data['Flag']
+        #     flags = flags[::2]
+        #     tiles = meta_file[1].data['Tilename']
+        #     tiles = tiles[::2]
+        #     di_files = glob.glob('%s/DI*.dat' % obs)
+        #     bp_files = glob.glob('%s/Band*.dat' % obs)
+        #     if(len(di_files) != 24 or len(bp_files) !=24):
+        #         print 'Missing cal files: ', obs, len(di_files), len(bp_files)
+        #         self.missing_list.append(obs)
+        #         continue
+        #
+        #     rts_cal = RTS_cals.rts_cal()
+        #     rts_cal.load_all_DI_jones(path='%s/' % obs)
+        #     rts_cal.load_all_BP_jones(path='%s/' % obs, raw=True,add_flagged=False)
+        #     rts_cal.load_metadata(metafile)
+        #     rts_cal.apply_metafits_gains()
+        #     rts_cal.form_single_jones()
+        #     low_gain = False
+        #     high_gain = False
+        #     high_tiles = []
+        #     low_tiles = []
+        #
+        #     for i,a in enumerate(rts_cal.antennas):
+        #         if(rts_cal.antennas[i].BP_jones[0] is not None):
+        #             xx_abs,yy_abs = rts_cal.all_single_jones(antenna=i,reverse_bands=True,correct_gain_jump=False,conjugate_jones=False)
+        #             xx_abs = (xx_abs * conj(xx_abs))
+        #             yy_abs = (yy_abs * conj(yy_abs))
+        #             if(self.all_xx[i] == None):
+        #                 self.all_xx[i] = [xx_abs]
+        #                 self.all_yy[i] = [yy_abs]
+        #             else:
+        #                 self.all_xx[i].append(xx_abs)
+        #                 self.all_yy[i].append(yy_abs)
+        #
+        #     self.allx_obs_dict[obs[-10:]] = self.all_xx
+        #     self.ally_obs_dict[obs[-10:]] = self.all_yy
 
         #print self.allx_obs_dict
 
