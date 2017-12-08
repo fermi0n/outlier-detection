@@ -7,6 +7,8 @@ import numpy as np
 
 import RTS_cals
 
+obsIDs = ['1061311664','1061314592']
+
 class tile_loader:
     def __init__(self):
         self.obs_list = None   #not sure if I can use sys.argv here
@@ -16,6 +18,8 @@ class tile_loader:
         self.allx_obs_dict = {}
         self.ally_obs_dict = {}
         self.missing_list = []
+        self.flaggedlist = []
+        self.steepnesses = []
 
     def load_observations(self, basepath = './', obsids = None):
 
@@ -28,7 +32,7 @@ class tile_loader:
 
         for obs in self.obs_list:
 
-            metafile = (glob.glob('%s/*_metafits*' % obs))[0]
+            metafile = (glob.glob('%s/*metafits*' % obs))[0]
             meta_file = fits.open(metafile)
             flags = meta_file[1].data['Flag']
             flags = flags[::2]
@@ -112,52 +116,102 @@ class tile_loader:
     #to identify observations with outlier features
     def identify_features(self):
 
-        for obs in ['1061311664',]:
-            steepnesses = [self.calculate_steepness(obs, antenna) for antenna in range(128)]
-            print "steepnesses are:"
-            print steepnesses
+        self.steepnesses = [[self.calculate_steepness(obs, antenna) for antenna in range(128)] for obs in obsIDs]
+        steepnesses = self.steepnesses
+        print "steepnesses are:"
+        print steepnesses
+        xs = [x for i in steepnesses for (x,y) in i ]
+        ys = [y for i in steepnesses for (x, y) in i ]
+        print xs
+        print ys
+
+        xstddev = np.std(xs)
+        xavg = np.mean(xs)
+        ystddev = np.std(ys)
+        yavg = np.mean(ys)
+
+
+        for obsindex, obsvalue in enumerate(obsIDs):
+        #    steepnesses = [self.calculate_steepness(obs, antenna) for antenna in range(128)]
+            #print "steepnesses are:"
+            #print steepnesses
 
             #Find anything which is more than 2 std devs from average
-            xs = [x for (x,y) in steepnesses]
-            ys = [y for (x, y) in steepnesses]
+        #    xs = [x for (x,y) in steepnesses]
+        #    ys = [y for (x, y) in steepnesses]
 
-            stddev = np.std(xs)
-            avg = np.mean(xs)
-            print "X Stddev is " + str(stddev) + "and average is " + str(avg)
-            for i, steepness in enumerate(xs):
+        #    stddev = np.std(xs)
+        #    avg = np.mean(xs)
+            print "X Stddev is " + str(xstddev) + "and average is " + str(xavg)
+            print "Y Stddev is " + str(ystddev) + "and average is " + str(yavg)
+            for antennaindex, antennasteepness in enumerate(steepnesses[obsindex]):
+                #xsteepness = antennasteepness[0]
                 #if steepness is None:
                 #    continue
-                if np.abs(np.real(steepness)) >= (np.abs(avg) + 3.0 * stddev):
-                    print "FLAGGED Steepness is" + str(steepness)
-                    plot(tileloader.allx_obs_dict['1061311664'][i][0], label='x amps')
-                    plot(tileloader.ally_obs_dict['1061311664'][i][0], label='y amps')
-                    title('X amp flagged: Antenna %d for OBSID 1061311664' %(i))
-                    savefig('X_antenna_%s_too_steep.png' % (i))
+                if np.abs(antennasteepness[0]) >= (np.abs(xavg) + 3.0 * xstddev):
+                    print "FLAGGED x steepness is" + str(antennasteepness[0]) + "for obsID " + obsvalue
+                    plot(tileloader.allx_obs_dict[obsvalue][antennaindex][0], label='x amps')
+                    plot(tileloader.ally_obs_dict[obsvalue][antennaindex][0], label='y amps')
+                    title('X amp flagged: Antenna %d for OBSID %s' %(antennaindex, obsvalue))
+                    savefig('X_antenna_%s_obs_%s_too_steep.png' % (antennaindex, obsvalue))
 
-            stddev = np.std(ys)
-            avg = np.mean(ys)
-            print "Y Stddev is " + str(stddev) + "and average is " + str(avg)
-            for i, steepness in enumerate(ys):
-                #if steepness is None:
-                #    continue
-                if np.abs(np.real(steepness)) >= (np.abs(avg) + 3.0 * stddev):
-                    print "FLAGGED Steepness is" + str(steepness)
-                    plot(tileloader.allx_obs_dict['1061311664'][i][0], label='x amps')
-                    plot(tileloader.ally_obs_dict['1061311664'][i][0], label='y amps')
-                    title('Y amp flagged: Antenna %d for OBSID 1061311664' %(i))
-                    savefig('Y_Antenna_%s_too_steep.png' % (i))
+                if np.abs(antennasteepness[1]) >= (np.abs(yavg) + 3.0 * ystddev):
+                    print "FLAGGED y steepness is" + str(antennasteepness[1]) + "for obsID " + obsvalue
+                    plot(tileloader.allx_obs_dict[obsvalue][antennaindex][0], label='x amps')
+                    plot(tileloader.ally_obs_dict[obsvalue][antennaindex][0], label='y amps')
+                    title('Y amp flagged: Antenna %d for OBSID %s' %(antennaindex, obsvalue))
+                    savefig('Y_antenna_%s_obs_%s_too_steep.png' % (antennaindex, obsvalue))
+            # stddev = np.std(ys)
+            # avg = np.mean(ys)
+            # print "Y Stddev is " + str(stddev) + "and average is " + str(avg)
+            # for i, steepness in enumerate(ys):
+            #     #if steepness is None:
+            #     #    continue
+            #     if np.abs(np.real(steepness)) >= (np.abs(avg) + 3.0 * stddev):
+            #         print "FLAGGED Steepness is" + str(steepness)
+            #         plot(tileloader.allx_obs_dict['1061311664'][i][0], label='x amps')
+            #         plot(tileloader.ally_obs_dict['1061311664'][i][0], label='y amps')
+            #         title('Y amp flagged: Antenna %d for OBSID 1061311664' %(i))
+            #         savefig('Y_Antenna_%s_too_steep.png' % (i))
 
+
+
+#Plot all tiles for each observation in a subplot
+    def plotTile(self, ax, obs, antennaindex):
+        ax.xaxis.set_ticklabels([])
+        ax.yaxis.set_ticklabels([])
+        if (antennaindex > 127):
+            return
+        if tileloader.allx_obs_dict[obs][antennaindex] is None:
+            ax.plot([0]*763)
+        else:
+            ax.plot(tileloader.allx_obs_dict[obs][antennaindex][0], label='x amps')
+            ax.plot(tileloader.ally_obs_dict[obs][antennaindex][0], label='y amps')
+            #ax.axis('off')
+        #ax.set_title('Antenna %d' %(antennaindex))
+
+    def plotObservation(self, obs):
+        fig, axes = subplots(nrows=11, ncols=12)
+        fig.suptitle('ObsID %s' %obs)
+        for rowindex, row in enumerate(axes):
+            for colindex, ax in enumerate(row):
+                print 'Antenna number is' + str(rowindex*12 + colindex)
+                self.plotTile(ax, obs, rowindex*12+colindex)
+        tight_layout()
+        savefig('OBS %s' %obs)
+        show()
 
 tileloader = tile_loader()
-tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = ['1061311664', ])
-tileloader.calculate_steepness('1061311664', 20)
-tileloader.identify_features()
+tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = obsIDs)
+#tileloader.calculate_steepness('1061311664', 20)
+#tileloader.identify_features()
+tileloader.plotObservation(obs='1061314592')
 
 #Plot a 'good' one:
-plot(tileloader.allx_obs_dict['1061311664'][32][0], label='x amps')
-plot(tileloader.ally_obs_dict['1061311664'][32][0], label='y amps')
-title('Good tile: Antenna 32 for OBSID 1061311664')
-show()
+#plot(tileloader.allx_obs_dict['1061311664'][32][0], label='x amps')
+#plot(tileloader.ally_obs_dict['1061311664'][32][0], label='y amps')
+#title('Good tile: Antenna 32 for OBSID 1061311664')
+#show()
 #Let's plot all the ones that are a bit off and have a look-see, shall we
 #plot(tileloader.allx_obs_dict['1061311664'][1][0])
 #title("Antenna 2 for OBSID 1061311664")
