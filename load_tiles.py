@@ -26,8 +26,15 @@ class tile_loader:
 
         cals_loader = CalsLoader.CalsLoader()
         cals_loader.plotAmplitudes(basepath + '/'+ obsIDs[1])
-        print "Printing cals loader JPX[2]"
-        print cals_loader.JPX[2]
+        print "Printing cals loader JPX[2][chan_sel]"
+        #channel_variable = [x for x in range(1024) if x % 2 == 0]
+        #print channel_variable
+        #print "JPX[2][channel_variable]"
+        print cals_loader.JPX[20]
+        clf()
+        plot(cals_loader.JPX[20])
+        show()
+        
 
 
         # if obsids == None:

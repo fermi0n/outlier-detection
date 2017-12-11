@@ -24,6 +24,7 @@ class CalsLoader:
 		self.obs = '1061314592'
 		self.JPX = []
 		self.JQY = []
+		self.chan_sel = []
 
 	def DI_factors(self, DI_file):
 		sel_offset = 1
@@ -279,8 +280,11 @@ class CalsLoader:
 		# ===========================
 
 		print "plotting Jones amps for %d frequency channels and %d antennas" % (N_ch, N_ant)
+		print "Printing argo"
+		print argo
 		self.JPX = [JPX[ii][chan_sel] for ii in argo]
 		self.JQY = [JQY[ii][chan_sel] for ii in argo]
+		self.chan_sel = chan_sel
 		print "Printing JPX[2][chan_sel]:"
 		print JPX[2][chan_sel]
 		# --------------------------------------------------------------------------------- #
@@ -439,7 +443,7 @@ class CalsLoader:
 		if sel_offset == 1:
 			plt.suptitle('Amps | Calibrator %s | JD %s' %(calid,JD),fontsize=18)
 			plt.show()
-			#savefig('Amps_%s.png'%self.obs, bbox_inches='tight')
+			savefig('Amps_%s.png'%self.obs, bbox_inches='tight')
 
 		plt.close(fig)
 
