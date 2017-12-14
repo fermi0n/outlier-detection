@@ -45,7 +45,7 @@ class tile_loader:
             print "testing - printing allx_obs_dict[" + obs + "][12]"
             print self.allx_obs_dict[obs][12]
 
-            self.discretisedAmps[obs] = []
+            self.discretisedAmps[obs] = [None]*128
 
         self.obs_list = obsids
 
@@ -115,26 +115,25 @@ class tile_loader:
                 self.discretisedAmps[obs][i] = xsequence + ysequence
 
 
-    def HammingDistance(sequence1, sequence2):
+    def HammingDistance(self, sequence1, sequence2):
         #Return the Hamming distance between equal-length sequences"""
         if len(sequence1) != len(sequence2):
             raise ValueError("Undefined for sequences of unequal length")
 
         return sum(el1 != el2 for el1, el2 in zip(sequence1, sequence2))
 
-    def CalculateKNearestNeighbourScore(k, refobs, reftile):
+    def CalculateKNearestNeighbourScore(self, k, refobs, reftile):
         #Just do brute force, fuck it
         #First calculate all distances to all other sequences
         distances = []
         for obs in self.obs_list:
             for i in range(128):
-                distances.append(HammingDistance(self.discretisedAmps[refobs][reftile], self.discretisedAmps[obs][i]))
+                distances.append(self.HammingDistance(self.discretisedAmps[refobs][reftile], self.discretisedAmps[obs][i]))
 
         #Now order those
         distances.sort()
+#        print distances
         return distances[k]
-
-
 
     #Calculate how steep the bandpass is
     def calculate_steepness(self, obsid, antenna):
@@ -284,15 +283,29 @@ class tile_loader:
         plt.show()
 		#savefig('Amps_%s.png'%obs, bbox_inches='tight')
 
+def takethird(elem):
+    return elem[2]
 
 tileloader = tile_loader()
 tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = obsIDs)
 tileloader.scaleObservations()
 tileloader.discretiseAmplitudes()
 print tileloader.CalculateKNearestNeighbourScore(10, obsIDs[0], 20)
+
+scores = []
+for obs in obsIDs:
+    for i in range (128):
+        score = tileloader.CalculateKNearestNeighbourScore(10, obs, i)
+        scores.append([obs, i, score])
+
+scores.sort(key=takethird, reverse=True)
+print "k-NN Scores are:"
+print scores
+
 #tileloader.calculate_steepness('1061311664', 20)
 #tileloader.identify_features()
-#tileloader.plotObservation(obs='1061314592')
+tileloader.plotObservation(obs=obsIDs[1])
+
 
 #Plot a 'good' one:
 #plot(tileloader.allx_obs_dict['1061311664'][32][0], label='x amps')
