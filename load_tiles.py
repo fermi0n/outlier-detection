@@ -9,12 +9,42 @@ import math
 
 import RTS_cals
 import CalsLoader
+import knearestneighbour
 
-obsIDs = ['1061311664','1061314592']
+obsIDs = ['1061311664', '1061312392', '1061312520', '1061312880', '1061313008', '1061313248']
+
+#Should be Good ones as well
+#1061312760
+#1061313496
+#1061313736
+#1061313856
+#1061313984
+#1061314104
+#1061314592
+#1061314224
+#1061314344
+#1061314472
+#1061314592
+#1061314712
+#1061314832
+#1061314960
+
+#Bad ones
+#1061313616
+
+#Under investigation:
+# 1061314224
+# 1061314344
+# 1061314472
+# 1061314592
+# 1061314712
+# 1061314832
+# 1061314960
+
 
 class tile_loader:
     def __init__(self):
-        self.obs_list = None   #not sure if I can use sys.argv here
+        self.obs_list = []   #not sure if I can use sys.argv here
         self.all_xx = [None] * 128
         self.all_yy = [None] * 128
 
@@ -81,12 +111,14 @@ class tile_loader:
         self.maxval = maxval
 
         for key, value in self.allx_obs_dict.iteritems():
-            for x in value:
-                self.scaled_x_dict[key] = [(a - minval) / (maxval - minval) for a in x]
+            self.scaled_x_dict[key] = [None]*128
+            for index, x in enumerate(value):
+                self.scaled_x_dict[key][index] = [(a - minval) / (maxval - minval) for a in x]
 
         for key, value in self.ally_obs_dict.iteritems():
-            for y in value:
-                self.scaled_y_dict[key] = [(a - minval) / (maxval - minval) for a in y]
+            self.scaled_y_dict[key] = [None]*128
+            for index, y in enumerate(value):
+                self.scaled_y_dict[key][index] = [(a - minval) / (maxval - minval) for a in y]
 
         print "printing unscaled vs scaled values"
         print "Allx_obs_dict['1061311664'][12]"
@@ -111,7 +143,7 @@ class tile_loader:
             for i in range(128):
                 xsequence = ''.join(map(self.convertAmptoSequence, self.allx_obs_dict[obs][i]))
                 ysequence = ''.join(map(self.convertAmptoSequence, self.ally_obs_dict[obs][i]))
-                print xsequence + ysequence
+                #print xsequence + ysequence
                 self.discretisedAmps[obs][i] = xsequence + ysequence
 
 
@@ -250,10 +282,6 @@ class tile_loader:
 
         for ii in range(128):
 
-#ax.plot(freq[freq_idx], self.JPX[ii], colours[1])
-#ax.plot(freq[freq_idx], self.JQY[ii], colours[2])
-#ax.set_xlim(min(freq[freq_idx]), max(freq[freq_idx]))
-
             ax = fig.add_subplot(8,16,sp+1,)
             ax.plot(self.allx_obs_dict[obs][ii], colours[1])
             ax.plot(self.ally_obs_dict[obs][ii], colours[2])
@@ -283,36 +311,107 @@ class tile_loader:
         plt.show()
 		#savefig('Amps_%s.png'%obs, bbox_inches='tight')
 
+
+    def plotFlaggedTiles(self, flaggedtiles):
+
+        colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
+
+        sp = 0
+        ppl = 16
+        maxv = 1.5
+
+        fig = plt.figure(figsize=(18.0, 10.0))
+
+        for tile in flaggedtiles:
+            obs = tile[0]
+            antenna = tile[1]
+            score = tile[2]
+
+            ax = fig.add_subplot(8,16,sp+1,)
+            ax.plot(self.allx_obs_dict[obs][antenna], colours[1])
+            ax.plot(self.ally_obs_dict[obs][antenna], colours[2])
+            plt.title('Obs %s \n Tile %s Score %.1f' %(obs, antenna, score), fontsize=8)
+
+            if ppl != 16:
+                plt.setp(ax.get_xticklabels(), visible=False) # plot setup
+                plt.setp(ax.get_yticklabels(), visible=False)
+
+            if ppl == 16:
+                ppl = 0
+                plt.setp(ax.get_xticklabels(), visible=False)
+            ppl += 1
+
+            plt.ylim([-0.1,maxv])
+
+            if sp == 15:
+                XX_amp, = ax.plot([],[], colours[1],label='XX',linewidth=3.0)
+                YY_amp, = ax.plot([],[], colours[2],label='YY',linewidth=3.0)
+                ax.legend((XX_amp,YY_amp),('XX','YY'), bbox_to_anchor=(0, 2, .12, .12),prop={'size':14})
+
+            sp += 1
+
+        plt.tight_layout()
+        fig.subplots_adjust(top=0.9)
+        plt.suptitle('Flagged tiles',fontsize=18)
+        plt.show()
+
+    def saveObservations(self):
+        #Print all the observations to csv files in a simple format:
+        #ObsId, antenna, channel, x-amp, Y-amp
+        f= open("observations.txt","w+")
+
+        for obs in self.obs_list:
+            for antenna in range(128):
+                for channel, value in enumerate(self.allx_obs_dict[obs][antenna]):
+                    if self.allx_obs_dict[obs][antenna] is not None:
+                        f.write("%s,%s,%d,%f,%f\n"%(obs, antenna, channel, self.allx_obs_dict[obs][antenna][channel], self.ally_obs_dict[obs][antenna][channel]))
+
+
+    #TODO: This doesn't yet work -
+    def loadObservationsFromFile(self, filename):
+
+        f = open(filename, "r")
+
+        for line in f:
+            values = line.split(',')
+            print values
+            if (values[0] in self.obs_list):
+                self.allx_obs_dict[values[0]][int(values[1])][int(values[2])] = values[3]
+                self.ally_obs_dict[values[0]][int(values[1])][int(values[2])] = values[4]
+            else:
+                self.obs_list.append(values[0])
+
+                self.allx_obs_dict[values[0]] = [([0.0]*648)*128]
+                self.ally_obs_dict[values[0]] = [([0.0]*648)*128]
+                self.allx_obs_dict[values[0]][int(values[1])][int(values[2])] = values[3]
+                self.ally_obs_dict[values[0]][int(values[1])][int(values[2])] = values[4]
+
 def takethird(elem):
     return elem[2]
 
 tileloader = tile_loader()
-tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = obsIDs)
-tileloader.scaleObservations()
-tileloader.discretiseAmplitudes()
-print tileloader.CalculateKNearestNeighbourScore(10, obsIDs[0], 20)
+tileloader.loadObservationsFromFile("observations.txt")
 
-scores = []
-for obs in obsIDs:
-    for i in range (128):
-        score = tileloader.CalculateKNearestNeighbourScore(10, obs, i)
-        scores.append([obs, i, score])
-
-scores.sort(key=takethird, reverse=True)
-print "k-NN Scores are:"
-print scores
-
-#tileloader.calculate_steepness('1061311664', 20)
-#tileloader.identify_features()
-tileloader.plotObservation(obs=obsIDs[1])
-
-
-#Plot a 'good' one:
-#plot(tileloader.allx_obs_dict['1061311664'][32][0], label='x amps')
-#plot(tileloader.ally_obs_dict['1061311664'][32][0], label='y amps')
-#title('Good tile: Antenna 32 for OBSID 1061311664')
-#show()
-#Let's plot all the ones that are a bit off and have a look-see, shall we
-#plot(tileloader.allx_obs_dict['1061311664'][1][0])
-#title("Antenna 2 for OBSID 1061311664")
-#show()
+#tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = obsIDs)
+#tileloader.saveObservations()
+#tileloader.scaleObservations()
+#tileloader.discretiseAmplitudes()
+#print tileloader.CalculateKNearestNeighbourScore(10, obsIDs[0], 20)
+#
+# knn = knearestneighbour.knearestneighbour()
+#
+# scores = []
+# for obs in obsIDs:
+#     for i in range (128):
+# #        score = knn.CalculateKNNScoreEuclidean(10, obs, i, tileloader.scaled_x_dict, obsIDs)
+#         score = knn.CalculateKNNScoreDistanceCorrelation(10, obs, i, tileloader.scaled_x_dict, obsIDs) + knn.CalculateKNNScoreDistanceCorrelation(10, obs, i, tileloader.scaled_y_dict, obsIDs)
+#         scores.append([obs, i, score])
+#
+# scores.sort(key=takethird, reverse=True)
+# print "k-NN Scores are:"
+# print scores
+#
+# #tileloader.calculate_steepness('1061311664', 20)
+# #tileloader.identify_features()
+tileloader.plotObservation(obs=obsIDs[0])
+# tileloader.plotFlaggedTiles(scores[:10])
