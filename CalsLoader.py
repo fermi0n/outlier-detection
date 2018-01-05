@@ -472,7 +472,7 @@ class CalsLoader:
 
 
 	def obtainAmplitudeforObservation(self, obsdir):
-		print "Plotting amplitudes"
+		print "Plotting amplitudes for " + obsdir
 		self.readdata(obsdir)
 
 # parser = optparse.OptionParser()

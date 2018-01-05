@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats as ss
 import scipy.spatial.distance as ssd
+from core import kshape, zscore, _sbd
 
 class knearestneighbour:
 
@@ -41,6 +42,14 @@ class knearestneighbour:
 
         return sum(difflist)
 
+    def KShapeDistance(self, list1, list2):
+
+        if (len(list1) != len(list2)):
+            print "Unequal lengths"
+        result = _sbd(list1, list2)
+        print(result)
+        return result[0]
+
     def CalculateKNNScoreEuclidean(self, k, refobs, reftile, Amps, obs_list):
 
         print Amps[refobs][reftile]
@@ -78,6 +87,7 @@ class knearestneighbour:
         #Now order these distances
         distances.sort()
         return sum(distances[:k])
+
 
 # knn = knearestneighbour()
 # difference = knn.EuclideanDistance([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [2, 4, 6, 8, 10, 12, 14, 16, 18, 20])

@@ -362,10 +362,15 @@ class tile_loader:
 
         for obs in self.obs_list:
             for antenna in range(128):
-                for channel, value in enumerate(self.allx_obs_dict[obs][antenna]):
-                    if self.allx_obs_dict[obs][antenna] is not None:
-                        f.write("%s,%s,%d,%f,%f\n"%(obs, antenna, channel, self.allx_obs_dict[obs][antenna][channel], self.ally_obs_dict[obs][antenna][channel]))
-
+                if self.allx_obs_dict[obs][antenna] is not None:
+                    f.write("%s,%s,X, " %(obs, antenna))
+                    for channel, value in enumerate(self.allx_obs_dict[obs][antenna]):
+                        f.write("%f, "%self.allx_obs_dict[obs][antenna][channel])
+                    f.write("\n")
+                    f.write("%s,%s,Y, " %(obs, antenna))
+                    for channel, value in enumerate(self.ally_obs_dict[obs][antenna]):
+                        f.write("%f, "%self.ally_obs_dict[obs][antenna][channel])
+                    f.write("\n")
 
     #TODO: This doesn't yet work -
     def loadObservationsFromFile(self, filename):
@@ -374,23 +379,22 @@ class tile_loader:
 
         for line in f:
             values = line.split(',')
-            print values
-            if (values[0] in self.obs_list):
-                self.allx_obs_dict[values[0]][int(values[1])][int(values[2])] = values[3]
-                self.ally_obs_dict[values[0]][int(values[1])][int(values[2])] = values[4]
-            else:
+            if (values[0] not in self.obs_list):
                 self.obs_list.append(values[0])
-
-                self.allx_obs_dict[values[0]] = [([0.0]*648)*128]
-                self.ally_obs_dict[values[0]] = [([0.0]*648)*128]
-                self.allx_obs_dict[values[0]][int(values[1])][int(values[2])] = values[3]
-                self.ally_obs_dict[values[0]][int(values[1])][int(values[2])] = values[4]
+                self.allx_obs_dict[values[0]] = [None]*128
+                self.ally_obs_dict[values[0]] = [None]*128
+            if values[2] == "X":
+                self.allx_obs_dict[values[0]][int(values[1])] = [float(i) for i in values[3:-1]]
+            else:
+                self.ally_obs_dict[values[0]][int(values[1])] = [float(i) for i in values[3:-1]]
 
 def takethird(elem):
     return elem[2]
 
 tileloader = tile_loader()
 tileloader.loadObservationsFromFile("observations.txt")
+print(tileloader.obs_list)
+print(tileloader.allx_obs_dict[tileloader.obs_list[0]])
 
 #tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = obsIDs)
 #tileloader.saveObservations()
