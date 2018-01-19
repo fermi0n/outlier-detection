@@ -1,17 +1,46 @@
 import glob
 from pylab import *
 matplotlib.use('Agg')
-from astropy.io import fits
-from fit_coarse_channels import fit_bandpass, fit_sigma
+
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-
-import RTS_cals
-import CalsLoader
+#import CalsLoader
 import knearestneighbour
+import datetime
+import time
+import vatcode as vat
+import seaborn as sns
+from scipy.spatial.distance import pdist, squareform
 
-obsIDs = ['1061311664', '1061312392', '1061312520', '1061312880', '1061313008', '1061313248']
+#obsIDs = ['1061311664', '1061312392', '1061312520', '1061312880', '1061313008', '1061313248']
+
+obsIDs = [
+'1061311664',
+'1061312392',
+'1061312520',
+'1061312880',
+'1061313008',
+'1061313248',
+'1061312392',
+'1061312520',
+'1061312760',
+'1061312880',
+'1061313008',
+'1061313248',
+'1061313496',
+'1061313736',
+'1061313856',
+'1061313984',
+'1061314104',
+'1061314224',
+'1061314344',
+'1061314472',
+'1061314592',
+'1061314712',
+'1061314832',
+'1061314960',
+'1061316296']
 
 #Should be Good ones as well
 #1061312760
@@ -72,8 +101,8 @@ class tile_loader:
             self.ally_obs_dict[obs] = cals_loader.JQY
 
             #Just to check I'm getting the right data from the CalsLoader file.
-            print "testing - printing allx_obs_dict[" + obs + "][12]"
-            print self.allx_obs_dict[obs][12]
+            #print "testing - printing allx_obs_dict[" + obs + "][12]"
+            print (self.allx_obs_dict[obs][12])
 
             self.discretisedAmps[obs] = [None]*128
 
@@ -93,9 +122,6 @@ class tile_loader:
                 if observationmin < minval:
                     minval = observationmin
 
-        print maxval
-        print minval
-        print "doing ys"
 
         for key, value in self.ally_obs_dict.iteritems():
             for y in value:
@@ -105,8 +131,7 @@ class tile_loader:
                     maxval = observationmax
                 if observationmin < minval:
                     minval = observationmin
-        print maxval
-        print minval
+
         self.minval = minval
         self.maxval = maxval
 
@@ -120,11 +145,11 @@ class tile_loader:
             for index, y in enumerate(value):
                 self.scaled_y_dict[key][index] = [(a - minval) / (maxval - minval) for a in y]
 
-        print "printing unscaled vs scaled values"
-        print "Allx_obs_dict['1061311664'][12]"
-        print self.allx_obs_dict['1061311664'][12]
-        print "Scaled version"
-        print self.scaled_x_dict['1061311664'][12]
+        #print "printing unscaled vs scaled values"
+        #print "Allx_obs_dict['1061311664'][12]"
+        #print self.allx_obs_dict['1061311664'][12]
+        #print "Scaled version"
+        #print self.scaled_x_dict['1061311664'][12]
 
     def convertAmptoSequence(self, number):
         if number == 0: return 'z'
@@ -132,7 +157,7 @@ class tile_loader:
         sequence = 'abcdefghijklmnopqrst'
         index = int(math.floor((number - self.minval ) / interval))
         if (index < 0 or index > 19):
-            print "yikes - we have a problem. index is:" + str(index)
+            #print "yikes - we have a problem. index is:" + str(index)
             return 't'
         return sequence[index]
 
@@ -172,19 +197,19 @@ class tile_loader:
 
         #Fit a one-dim polynomial (i.e.a line)
         #Calculate how steep it is (i.e. the gradient)
-        print "Calculating for obsid = " + str(obsid) + "antenna = " + str(antenna)
-        print "Where length of obsid for x is " +  str(len(self.allx_obs_dict[obsid]))
-        print "and length of obsid for y is " + str(len(self.ally_obs_dict[obsid]))
+        #print "Calculating for obsid = " + str(obsid) + "antenna = " + str(antenna)
+        #print "Where length of obsid for x is " +  str(len(self.allx_obs_dict[obsid]))
+        #print "and length of obsid for y is " + str(len(self.ally_obs_dict[obsid]))
         if self.allx_obs_dict[obsid][antenna] is None or self.ally_obs_dict[obsid][antenna] is None:
-            print "Can't continue - antenna turns out to be None"
+        #    print "Can't continue - antenna turns out to be None"
             return (0,0)
-        print 'length of dict is %d' %len(self.allx_obs_dict[obsid][antenna][0])
-        print 'x dict is'
-        print self.allx_obs_dict[obsid][antenna][0]
+        #print 'length of dict is %d' %len(self.allx_obs_dict[obsid][antenna][0])
+        #print 'x dict is'
+        #print self.allx_obs_dict[obsid][antenna][0]
         zx = np.polyfit(arange(763), self.allx_obs_dict[obsid][antenna][0], 1)
-        print zx
+        #print zx
         zy = np.polyfit(arange(763), self.ally_obs_dict[obsid][antenna][0], 1)
-        print zy
+        #print zy
         return (np.real(zx[0]), np.real(zy[0]))
 
     #Copied in case I screw this up - adding y's to this calculation
@@ -211,12 +236,12 @@ class tile_loader:
 
         self.steepnesses = [[self.calculate_steepness(obs, antenna) for antenna in range(128)] for obs in obsIDs]
         steepnesses = self.steepnesses
-        print "steepnesses are:"
-        print steepnesses
+        print("steepnesses are:")
+        print (steepnesses)
         xs = [x for i in steepnesses for (x,y) in i ]
         ys = [y for i in steepnesses for (x, y) in i ]
-        print xs
-        print ys
+        #print xs
+        #print ys
 
         xstddev = np.std(xs)
         xavg = np.mean(xs)
@@ -235,21 +260,21 @@ class tile_loader:
 
         #    stddev = np.std(xs)
         #    avg = np.mean(xs)
-            print "X Stddev is " + str(xstddev) + "and average is " + str(xavg)
-            print "Y Stddev is " + str(ystddev) + "and average is " + str(yavg)
+            #print "X Stddev is " + str(xstddev) + "and average is " + str(xavg)
+            #print "Y Stddev is " + str(ystddev) + "and average is " + str(yavg)
             for antennaindex, antennasteepness in enumerate(steepnesses[obsindex]):
                 #xsteepness = antennasteepness[0]
                 #if steepness is None:
                 #    continue
                 if np.abs(antennasteepness[0]) >= (np.abs(xavg) + 3.0 * xstddev):
-                    print "FLAGGED x steepness is" + str(antennasteepness[0]) + "for obsID " + obsvalue
+                #    print "FLAGGED x steepness is" + str(antennasteepness[0]) + "for obsID " + obsvalue
                     plot(tileloader.allx_obs_dict[obsvalue][antennaindex][0], label='x amps')
                     plot(tileloader.ally_obs_dict[obsvalue][antennaindex][0], label='y amps')
                     title('X amp flagged: Antenna %d for OBSID %s' %(antennaindex, obsvalue))
                     savefig('X_antenna_%s_obs_%s_too_steep.png' % (antennaindex, obsvalue))
 
                 if np.abs(antennasteepness[1]) >= (np.abs(yavg) + 3.0 * ystddev):
-                    print "FLAGGED y steepness is" + str(antennasteepness[1]) + "for obsID " + obsvalue
+                #    print "FLAGGED y steepness is" + str(antennasteepness[1]) + "for obsID " + obsvalue
                     plot(tileloader.allx_obs_dict[obsvalue][antennaindex][0], label='x amps')
                     plot(tileloader.ally_obs_dict[obsvalue][antennaindex][0], label='y amps')
                     title('Y amp flagged: Antenna %d for OBSID %s' %(antennaindex, obsvalue))
@@ -372,7 +397,7 @@ class tile_loader:
                         f.write("%f, "%self.ally_obs_dict[obs][antenna][channel])
                     f.write("\n")
 
-    #TODO: This doesn't yet work -
+    #load observations from file written in the format given in the above method
     def loadObservationsFromFile(self, filename):
 
         f = open(filename, "r")
@@ -387,14 +412,114 @@ class tile_loader:
                 self.allx_obs_dict[values[0]][int(values[1])] = [float(i) for i in values[3:-1]]
             else:
                 self.ally_obs_dict[values[0]][int(values[1])] = [float(i) for i in values[3:-1]]
+        self.obs_list.sort()
+
+    def vatvisualisation(self):
+        #First create an array of tile amplitudes
+        listoftiles = []
+        for obs in self.obs_list[0:3]:
+            listoftiles.extend([self.allx_obs_dict[obs][i] + self.ally_obs_dict[obs][i] for i in range(127)])
+        #Then create a matrix of tile scores
+        print(listoftiles)
+        knn = knearestneighbour.knearestneighbour()
+        R = []
+        for tile in listoftiles:
+            listofscores = []
+            for tile2 in listoftiles:
+                listofscores.append(knn.KShapeDistance(tile, tile2))
+            R.append(listofscores)
+        #    print ("Finished one loop")
+        #Then pass this to vatcode.py - TODO: How do I do this?
+
+        sq = squareform(pdist(R))
+        RV, C, I = VAT(sq)
+        ax=sns.heatmap(RV,cmap='Greys_r',xticklabels=False,yticklabels=False)
+        ax.set(xlabel='Objects', ylabel='Objects')
+        plt.show(ax)
+
+    def plotChannel(self, channel):
+
+        colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
+
+        sp = 0
+        ppl = 16
+        maxv = 1.5
+
+        fig = plt.figure(figsize=(18.0, 10.0))
+
+        #Create the xtick labels
+        timelist = []
+        for obs in self.obs_list:
+            date = datetime.datetime.fromtimestamp(float(obs) + 315964782)
+            timelist.append(str(date.day) + '/' + str(date.month) + ':' + str(date.hour) + ':' + str(date.minute) + '.' + str(date.second))
+
+        for ii in range(128):
+            xlist = []
+            ylist = []
+            for obs in self.obs_list:
+                xlist.append(self.allx_obs_dict[obs][ii][channel])
+                ylist.append(self.ally_obs_dict[obs][ii][channel])
+
+            ax = fig.add_subplot(8,16,sp+1,)
+            ax.plot(self.obs_list, xlist, color=colours[1])
+            ax.plot(self.obs_list, ylist, color=colours[2])
+
+            ax.set_xticklabels(timelist)
+            #ax.tick_params('x', labelrotation=90)
+            plt.title('Tile %d'%ii)
+
+            if ppl != 16:
+                plt.setp(ax.get_xticklabels(), visible=False) # plot setup
+                plt.setp(ax.get_yticklabels(), visible=False)
+
+            if ppl == 16:
+                ppl = 0
+                plt.setp(ax.get_xticklabels(), visible=False)
+            ppl += 1
+
+            plt.ylim([-0.1,maxv])
+
+            if sp == 15:
+                XX_amp, = ax.plot([],[], colours[1],label='XX',linewidth=3.0)
+                YY_amp, = ax.plot([],[], colours[2],label='YY',linewidth=3.0)
+                ax.legend((XX_amp,YY_amp),('XX','YY'), bbox_to_anchor=(0, 2, .12, .12),prop={'size':14})
+
+            sp += 1
+
+        plt.tight_layout()
+        fig.subplots_adjust(top=0.9)
+        plt.suptitle('Amps | Channel %d' %(channel),fontsize=14)
+        print(timelist)
+        plt.show()
+
 
 def takethird(elem):
     return elem[2]
 
-tileloader = tile_loader()
-tileloader.loadObservationsFromFile("observations.txt")
-print(tileloader.obs_list)
-print(tileloader.allx_obs_dict[tileloader.obs_list[0]])
+if __name__ == "__main__":
+
+    tileloader = tile_loader()
+    tileloader.loadObservationsFromFile("observations.txt")
+#    print(tileloader.obs_list)
+#    print(tileloader.allx_obs_dict[tileloader.obs_list[0]])
+#    tileloader.plotChannel(12)
+#    R = tileloader.vatvisualisation()
+#    RV, C, I = vat.VAT(R)
+#    print (RV)
+
+
+
+    knn = knearestneighbour.knearestneighbour()
+    histogramdata, distances = knn.KShapeHistogram(tileloader)
+
+    print(distances[:30])
+
+    plt.hist(histogramdata, bins=100) #, bins=list(np.arange(0.0, 0.1, 0.001)))
+    plt.show()
+
+#    ax=sns.heatmap(R,vmax=0.1, xticklabels=False,yticklabels=False)
+#    ax.set(xlabel='Objects', ylabel='Objects')
+#    plt.show(ax)
 
 #tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = obsIDs)
 #tileloader.saveObservations()
@@ -417,5 +542,5 @@ print(tileloader.allx_obs_dict[tileloader.obs_list[0]])
 #
 # #tileloader.calculate_steepness('1061311664', 20)
 # #tileloader.identify_features()
-tileloader.plotObservation(obs=obsIDs[0])
+#    tileloader.plotObservation(obs=obsIDs[0])
 # tileloader.plotFlaggedTiles(scores[:10])
