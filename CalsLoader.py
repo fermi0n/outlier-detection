@@ -43,7 +43,7 @@ class CalsLoader:
 		fid.close()
 		# check that something was read in
 		if len(lines)==0:
-			print "Erorr reading DI jones matrix file: no lines read from the file."
+			print "Error reading DI jones matrix file: no lines read from the file."
 			sys.exit(0)
 
 		N_ant = len(lines)-2

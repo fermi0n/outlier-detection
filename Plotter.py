@@ -123,7 +123,7 @@ if __name__ == "__main__":
     plotter = Plotter()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--file', help="Obtain amplitude data from file", nargs='?', default='observation.txt')
+    parser.add_argument('-f', '--file', help="Obtain amplitude data from file", nargs='?')
     parser.add_argument('-s', '--save', action='store_true', help="Save plot to file rather than display")
     parser.add_argument("data", help="Either channel number or observation ID")
     args = parser.parse_args()
@@ -142,8 +142,10 @@ if __name__ == "__main__":
 
     else:
         if args.file == None:
-            tileloader.load_observations(obsids=[args.data])
+            tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data/', obsids=[args.data])
         else:
+	    print("Loading observations from file:")
+	    print(args.file)
             tileloader.loadObservationsFromFile(args.file)
         if (args.data in tileloader.obs_list):
             #Plot observation
