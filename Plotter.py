@@ -124,39 +124,39 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', help="Obtain amplitude data from file", nargs='?')
+    parser.add_argument('-p', '--path', help="Base path where the observations are kept", default='/lustre/projects/p048_astro/MWA/data')
     parser.add_argument('-s', '--save', action='store_true', help="Save plot to file rather than display")
     parser.add_argument("data", help="Either channel number or observation ID")
     args = parser.parse_args()
     #Check if its a channel
     if (int(args.data) in range(800)):
         if args.file == None:
-            print("Usage: For speed reasons, want to load this data from file")
+            print("Usage: For speed reasons, if plotting a channel, must load data from file")
         else:
             tileloader.loadObservationsFromFile(args.file)
             #Plot channel
-            #First check that it is in fact a channel
             if (args.save):
                 plotter.plotChannel(tileloader, int(args.data), 'save')
             else:
                 plotter.plotChannel(tileloader, int(args.data))
 
-    else:
-        if args.file == None:
-            tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data/', obsids=[args.data])
-        else:
-	    print("Loading observations from file:")
-	    print(args.file)
+    else:  #Is an observation ID
+        if args.file == None:  #i.e. loading from path
+            tileloader.load_observations(basepath=args.path, obsids=[args.data])
+        else:  #Loading from file
+	        print("Loading observations from file:")
+	        print(args.file)
             tileloader.loadObservationsFromFile(args.file)
-        if (args.data in tileloader.obs_list):
+        if (args.data in tileloader.obs_list):  #All is good - the observation ID was in the file or was found in the filesystem
             #Plot observation
             if (args.save):
                 plotter.plotObservation(tileloader, args.data, 'save')
             else:
                 plotter.plotObservation(tileloader, args.data)
         else:
-            print("Usage: You must provide an observation ID or a channel number")
-
-
-    #tileloader.loadObservationsFromFile('observations.txt')
-    #tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = [sys.argv[1]])
-    #tileloader.saveObservations("observations.txt")
+            if (args.file==None):
+                print("Usage: You did not provide a valid observation ID that we could find in path selected:")
+                print(args.path)
+            else:
+                print("Usage: You must provide an observation ID which is present in the file you have selected")
+                print(args.file)

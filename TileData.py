@@ -1,5 +1,6 @@
 import glob
 from pylab import *
+import argparse
 #matplotlib.use('Agg')
 
 import numpy as np
@@ -56,20 +57,26 @@ class TileData:
         self.minval = 0.0
         self.maxval = 100.0
 
+        self.problem_obs_list = []
+
         self.discretisedAmps = {}
 
-    def load_observations(self, basepath = './', obsids = None):
+    def load_observations(self, basepath = '.', obsids = None):
 
         for obs in obsids:
-            cals_loader = CalsLoader.CalsLoader()
-            cals_loader.obtainAmplitudeforObservation(basepath + '/'+ obs)
+            try:
+                cals_loader = CalsLoader.CalsLoader()
+                cals_loader.obtainAmplitudeforObservation(basepath + '/'+ obs)
 
-            self.allx_obs_dict[obs] = cals_loader.JPX
-            self.ally_obs_dict[obs] = cals_loader.JQY
+                self.allx_obs_dict[obs] = cals_loader.JPX
+                self.ally_obs_dict[obs] = cals_loader.JQY
+                self.obs_list.append(obs)
+                self.discretisedAmps[obs] = [None]*128
 
-            self.discretisedAmps[obs] = [None]*128
+            except Exception, err:
+                self.problem_obs_list.append(obs)
 
-        self.obs_list = obsids
+        print("Problem Obs IDs are ", self.problem_obs_list)
 
     def scaleObservations(self):
 
@@ -108,10 +115,10 @@ class TileData:
             for index, y in enumerate(value):
                 self.scaled_y_dict[key][index] = [(a - minval) / (maxval - minval) for a in y]
 
-    def saveObservations(self):
+    def saveObservations(self, filename):
         #Print all the observations to csv files in a simple format:
         #ObsId, antenna, channel, x-amp, Y-amp
-        f= open("observations.txt","w+")
+        f= open(filename,"w+")
 
         for obs in self.obs_list:
             for antenna in range(128):
@@ -146,16 +153,31 @@ class TileData:
 if __name__ == "__main__":
 
     tileloader = TileData()
-    tileloader.loadObservationsFromFile("observationsmodified.txt")
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--file', help="Save amplitude data in this file")
+    parser.add_argument('-p', '--path', help="Base path where the observations are kept", default='/lustre/projects/p048_astro/MWA/data')
+    #parser.add_argument('-s', '--save', action='store_true', help="Save plot to file rather than display")
+    parser.add_argument("observations", nargs='*', help="Observation IDs")
+    args = parser.parse_args()
+    print("Loading observations into memory:")
+    print(args.observations)
+    tileloader.load_observations(basepath=args.path, obsids=args.observations)
+    print("Saving observations to file")
+    print(args.file)
+    tileloader.saveObservations(args.file)
 
     #print(tileloader.allx_obs_dict['1061313248'][126])
-    knn = DataAnalysis.KNNAnalysis()
-    histogramdata, distances = knn.KShapeHistogram(tileloader)
+    #knn = DataAnalysis.KNNAnalysis()
+    #histogramdata, distances = knn.KShapeHistogram(tileloader)
 
-    print(distances[:30])
+    #print(distances[:30])
 
-    plt.hist(histogramdata, bins=100) #, bins=list(np.arange(0.0, 0.1, 0.001)))
-    plt.show()
+    #plt.hist(histogramdata, bins=100) #, bins=list(np.arange(0.0, 0.1, 0.001)))
+    #plt.show()
+
+
+
 
 #    ax=sns.heatmap(R,vmax=0.1, xticklabels=False,yticklabels=False)
 #    ax.set(xlabel='Objects', ylabel='Objects')

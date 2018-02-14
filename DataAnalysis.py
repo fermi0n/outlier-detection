@@ -4,7 +4,8 @@ import scipy.spatial.distance as ssd
 from core import kshape, zscore, _sbd
 from operator import itemgetter
 import TileData as tl
-import mlpy as mlpy
+#Uncomment below line to use DTW 
+#import mlpy as mlpy
 import matplotlib.pyplot as plt
 
 class DistanceMeasures:
@@ -38,7 +39,9 @@ class DistanceMeasures:
     @staticmethod
     def DTWDistance(list1, list2):
 
-        result = mlpy.dtw_std(list1, list2, dist_only=True)
+        #Uncomment below line to run DTW (can't use on gstar)
+        #result = mlpy.dtw_std(list1, list2, dist_only=True)
+        result = 5
     #    print (result)
         return result
 
