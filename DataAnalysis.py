@@ -4,9 +4,9 @@ import scipy.spatial.distance as ssd
 from core import kshape, zscore, _sbd
 from operator import itemgetter
 import TileData as tl
-#Uncomment below line to use DTW 
+#Uncomment below line to use DTW
 #import mlpy as mlpy
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 class DistanceMeasures:
 
@@ -48,9 +48,14 @@ class DistanceMeasures:
     @staticmethod
     def KShapeDistance(list1, list2):
 
-        if (len(list1) != len(list2)):
-            print("Unequal lengths")
+        #if (len(list1) != len(list2)):
+        #    print("Unequal lengths", len(list1), len(list2))
         result = _sbd(list1, list2)
+        if (np.isnan(result[0])):
+            print("NaN returned by:")
+            print(list1)
+            print(list2)
+            #exit(0)
         ##print(result)
         return result[0]
 
@@ -69,25 +74,25 @@ class KNNAnalysis:
 #        #print distances
         return distances[k]
 
-    def KShapeHistogram(self, tiledata):
-
+    def KShapeHistogram(self, tileloader):
 
         #First create an array of tile amplitudes
         listoftiles = []
-        print tileloader.obs_list[-3:]
-        for obs in tileloader.obs_list[-3:]:
+        print tileloader.obs_list
+        for obs in tileloader.obs_list:
             listoftiles.extend([[obs, i] + [tileloader.allx_obs_dict[obs][i] + tileloader.ally_obs_dict[obs][i]] for i in range(128)])
 
         #Then create a matrix of tile->tile distances
         R = []
-        for obs, tileindex, tilevalue in listoftiles:
-            listofscores = []
-            for obs2, tileindex2, tilevalue2 in listoftiles:
+        for counter, (obs, tileindex, tilevalue) in enumerate(listoftiles):
+    #        listofscores = []
+            #Do this cleverly so we don't need to calculate kshapedistance twice for each pair, but we still retain a symmetric matrix
+            listofscores = [R[i][counter] for i in range(counter)]
+            for obs2, tileindex2, tilevalue2 in listoftiles[counter:]:
                 listofscores.append([obs, tileindex, obs2, tileindex2] + [DistanceMeasures.KShapeDistance(tilevalue, tilevalue2)])
-            #Sort this list
-            listofscores.sort(key=itemgetter(4))
             R.append(listofscores)
 
+        print R[23]
         #Then sum the distances of each tile to other tiles (Note: this will give global anomalies, not local - i.e. won't take clustering into account)
         distances = []
         for line in R:

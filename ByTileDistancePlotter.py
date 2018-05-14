@@ -1,19 +1,11 @@
-#import glob
 import sys
 from pylab import *
 import argparse
-#matplotlib.use('Agg')
-#from astropy.io import fits
-#from fit_coarse_channels import fit_bandpass, fit_sigma
 import numpy as np
 import matplotlib.pyplot as plt
-#import math
 import TileData as td
 import time as time
 
-class Plotter:
-    def __init__(self):
-        random = 0
 
     def plotObservation(self, tiledata, obs, output='display'):
 
@@ -21,7 +13,7 @@ class Plotter:
 
         sp = 0
         ppl = 16
-        #maxv = 1000.0
+        #maxv = 1.5
         maxv = max(max([max(tiledata.allx_obs_dict[obs][ii]) for ii in range(128)]), max([max(tiledata.ally_obs_dict[obs][ii]) for ii in range(128)]))
         print maxv
 
@@ -61,35 +53,36 @@ class Plotter:
         else:
             plt.show()
 
-    def plotChannel(self, tiledata, channel, output='display'):
+def plotTile(self, distancedata, channel, output='display'):
 
-        colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
+    colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
 
-        sp = 0
-        ppl = 16
-        maxv = 1.5
+    sp = 0
+    ppl = 16
 
-        fig = plt.figure(figsize=(18.0, 10.0))
+    maxv = 1.2
+#    maxv = max(max([max(tiledata.allx_obs_dict[obs][ii]) for ii in range(128)]), max([max(tiledata.ally_obs_dict[obs][ii]) for ii in range(128)]))
 
-        #Converts GPS time to readable time
-        timelist = []
-        for obs in tiledata.obs_list:
-            date = datetime.datetime.fromtimestamp(float(obs) + 315964782)
-            timelist.append(str(date.day) + '/' + str(date.month) + ':' + str(date.hour) + ':' + str(date.minute) + '.' + str(date.second))
+    fig = plt.figure(figsize=(18.0, 10.0))
 
-        for ii in range(128):
-            xlist = []
-            ylist = []
-            for obs in tiledata.obs_list:
-                xlist.append(tiledata.allx_obs_dict[obs][ii][channel])
-                ylist.append(tiledata.ally_obs_dict[obs][ii][channel])
+    #Converts GPS time to readable time
+    timelist = []
+    for obs in tiledata.obs_list:
+        date = datetime.datetime.fromtimestamp(float(obs) + 315964782)
+        timelist.append(str(date.day) + '/' + str(date.month) + ':' + str(date.hour) + ':' + str(date.minute) + '.' + str(date.second))
 
-            ax = fig.add_subplot(8,16,sp+1,)
-            ax.plot(tiledata.obs_list, xlist, color=colours[1])
-            ax.plot(tiledata.obs_list, ylist, color=colours[2])
 
-            ax.set_xticklabels(timelist)
-            plt.title('Tile %d'%ii)
+    for obsid, tile, distance in distancedata:
+
+        #Get the observational data
+
+
+
+
+        ax = fig.add_subplot(8,16,sp+1,)
+        ax.plot(tiledata.allx_obs_dict[obs][ii], colours[1])
+        ax.plot(tiledata.ally_obs_dict[obs][ii], colours[2])
+        plt.title('Tile %d'%ii)
 
             if ppl != 16:
                 plt.setp(ax.get_xticklabels(), visible=False) # plot setup
@@ -111,11 +104,10 @@ class Plotter:
 
         plt.tight_layout()
         fig.subplots_adjust(top=0.9)
-        plt.suptitle('Amps | Channel %d' %(channel),fontsize=14)
-        print(timelist)
+        plt.suptitle('Amps | Observation %s' %(obs),fontsize=18)
 
         if output == 'save':
-            savefig('%s_Amps_Channel_%s.png'%(time.strftime("%d%b_%H:%M:%S", time.localtime()),channel), bbox_inches='tight')
+            savefig('%sAmps_Obs_%s.png'%(time.strftime("%d%b_%H:%M:%S", time.localtime()), obs), bbox_inches='tight')
         else:
             plt.show()
 

@@ -1,23 +1,28 @@
-from numpy import cos, sin,array, matrix, inner, conj, real, imag,zeros,arange,shape
+from numpy import cos, sin,array, matrix, inner, conj, real, imag,zeros,arange,shape, sqrt, ones
 from astropy.io import fits
 
 class rts_cal():
     def __init__(self):
         self.n_ants = 128
+        self.n_bands = 24
         self.antennas=[]
         self.flagged_antennas = None
         for i in range(self.n_ants):
             self.antennas.append(rts_antenna(i))
         self.freqs = None
         self.metafile = None
+        self.BP_weights = [None] * self.n_bands
+
 
     # Each BP file contains all antennas, so load must occur at top level
 
-    def load_BP_jones(self,band,path='./',raw=False,add_flagged=True):
+    def load_BP_jones(self,band,path='./',raw=False,add_flagged=True,chan_bw=0.04):
         calsfile = path + 'BandpassCalibration_node%03d.dat' % band
         cals_file = open(calsfile)
-        cals_file.readline() # header
 
+        present_freqs = ((cals_file.readline()).split(','))
+        present_freqs = [int(round(float(p)/chan_bw)) for p in present_freqs]
+        flagged_channels = array([i for i in range(32) if i not in present_freqs])
         all_gains = []
 
         all_antennas = []
@@ -47,10 +52,6 @@ class rts_cal():
             xy_gains = all_gains[2::8]
             yx_gains = all_gains[4::8]
             yy_gains = all_gains[6::8]
-#            xx_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 0]
-#            xy_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 2]
-#            yx_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 4]
-#            yy_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 6]
         else:
             xx_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 1]
             xy_gains = [all_gains[i] for i in range(len(all_gains)) if i%8 == 3]
@@ -69,39 +70,78 @@ class rts_cal():
             self.antennas[antenna_number[i]].BP_jones[band-1] = jones
             if(add_flagged):
                 # Add in flagged channels
-                self.antennas[antenna_number[i]].BP_jones[band-1].insert(0,flagged_jones)
-                self.antennas[antenna_number[i]].BP_jones[band-1].insert(0,flagged_jones)
-                self.antennas[antenna_number[i]].BP_jones[band-1].append(flagged_jones)
-                self.antennas[antenna_number[i]].BP_jones[band-1].append(flagged_jones)
+                for ch in range(32):
+                    if(ch in flagged_channels):
+                        self.antennas[antenna_number[i]].BP_jones[band-1].insert(ch,flagged_jones)    
+                self.BP_weights[band-1] = ones(32)
+                self.BP_weights[band-1][flagged_channels] = 0.0
+            else:
+                self.BP_weights[band-1] = ones(len(present_channels))
+
+#                self.antennas[antenna_number[i]].BP_jones[band-1].insert(0,flagged_jones)
+#                self.antennas[antenna_number[i]].BP_jones[band-1].insert(0,flagged_jones)
+#                self.antennas[antenna_number[i]].BP_jones[band-1].append(flagged_jones)
+#                self.antennas[antenna_number[i]].BP_jones[band-1].append(flagged_jones)
                 # center channel
-                self.antennas[antenna_number[i]].BP_jones[band-1].insert(16,flagged_jones)
+#                self.antennas[antenna_number[i]].BP_jones[band-1].insert(16,flagged_jones)
 
-            all_jones.append(jones)
-
-        # Add in flagged channels
-
-
+            
+#            all_jones.append(jones)
 
         cals_file.close()
 
-    def load_DI_jones(self,band,path='./'):
-        calsfile = path + 'DI_JonesMatrices_node%03d.dat' % band
+    def load_DI_jones(self,band,path='./',filename='DI_JonesMatrices_node'):
+        calsfile = path + '%s%03d.dat' % (filename,band)
         cals_file = open(calsfile)
         flux_scale = float(cals_file.readline())
         all_jones = []
 
         for line in cals_file:
             xxr, xxi, xyr, xyi, yxr, yxi, yyr, yyi = line.split(',')
-            jones = matrix([[float(xxr) + 1.0j * float(xxi),float(xyr) + 1.0j * float(xyi)],[float(yxr) + 1.0j * float(yxi),float(yyr) + 1.0j * float(yyi)]])
+            jones = matrix([[float(xxr) + 1.0j * float(xxi),float(xyr) + 1.0j * float(xyi)],[float(yxr) + 1.0j * float(yxi),float(yyr) + 1.0j * float(yyi)]]) 
             all_jones.append(jones)
+
         cals_file.close()
 
-        inv_ref0 = all_jones[0].I
+#        inv_ref0 = all_jones[0].I
 
-        DI_jones = [j * inv_ref0 for j in all_jones[1:]]
+#        DI_jones = [j * inv_ref0 for j in all_jones[1:]]
+
+#        DI_jones = [all_jones[0] * j.I for j in all_jones[1:]]
+
+        DI_jones = [j for j in all_jones[1:]]
+        DI_jones_ref = all_jones[0]
 
         for a,dj in zip(self.antennas,DI_jones):
             a.DI_jones[band-1] = dj
+            a.DI_jones_ref[band-1] = DI_jones_ref
+
+    def load_cals_from_single_jones(self,single_jones,antenna=0,cent_chan=12):
+        flagged_channels = [0,1,16,30,31]
+        ant = self.antennas[antenna]
+        total_ch = 0
+        n_chan = 32
+        band_0 = cent_chan - 12
+        # single jones are in physical frequency order, so we have to 
+        # go back to coarse PFB order for consistency with RTS cals
+        for b in range(self.n_bands):
+            band_number = b + cent_chan - 12
+            if(band_number > 128):
+                if(band_0 > 128):
+                    band_index = self.n_bands -(b+1)
+                else:
+                    band_index = self.n_bands-(band_number-128)
+            else:
+                band_index = b
+            ant.DI_jones[band_index] = array([[1.0, 0.0],[0.0, 1.0]])
+            ant.BP_jones[band_index] = [None] * n_chan
+            for ch_n,ch in enumerate(ant.BP_jones[band_index]):
+                ch_cals = [[[],[]],[[],[]]]
+                for pol1 in [0,1]:
+                    for pol2 in [0,1]:
+                        ch_cals[pol1][pol2] = single_jones[pol1][pol2][total_ch]
+                ant.BP_jones[band_index][ch_n] = array(ch_cals)
+                total_ch += 1
 
     def average_BP_jones(self):
         for idx,a in enumerate(self.antennas):
@@ -120,10 +160,10 @@ class rts_cal():
         for i in range(1,n_bands+1):
             self.load_BP_jones(i,path=path,raw=raw,add_flagged=add_flagged)
 
-    def load_all_DI_jones(self,path='./'):
+    def load_all_DI_jones(self,path='./',filename='DI_JonesMatrices_node'):
         n_bands = 24
         for i in range(1,n_bands+1):
-            self.load_DI_jones(i,path=path)
+            self.load_DI_jones(i,path=path,filename=filename)
 
     def load_metadata(self,metafile):
         from astropy.time import Time
@@ -138,9 +178,9 @@ class rts_cal():
         freqcent = meta_file[0].header['FREQCENT']
 
         freqs = (fine_chan * 1e3) * arange(nchans)
-        self.freqs = freqs + freqcent * 1e6 - (freqs[nchans/2] + freqs[nchans/2 -1]) / 2.0 - (fine_chan * 1e3) / 2.0
+        self.freqs = freqs + freqcent * 1e6 - (freqs[nchans/2] + freqs[nchans/2 -1]) / 2.0 - (fine_chan * 1e3) / 2.0 
         meta_file.close()
-
+ 
 
     def apply_metafits_gains(self):
         for i in range(self.n_ants):
@@ -148,24 +188,33 @@ class rts_cal():
             norm_gains = [float(g)/g0 for g in self.meta_gains[2*i]]
             d = [di / g for di,g in zip(self.antennas[i].DI_jones,reversed(norm_gains))]
             self.antennas[i].DI_jones = d
+        
 
 
-
-    def all_BP_jones(self,antenna=0,reverse_bands=False):
+    def all_BP_jones(self,antenna=0,reverse_bands=False,cent_chan=12):
         all_BP_xx = []
         all_BP_yy = []
         a = self.antennas[antenna]
+        band_0 = cent_chan - 12
         if(a!=None):
-            if(reverse_bands):
-                for B in reversed(a.BP_jones):
-                    if(B!=None):
+            for b,B in enumerate(a.BP_jones):
+                band_number = b + cent_chan - 12
+                if(band_number < 129):
+                   if(B is not None):
                         for chan in B:
-                            all_BP_xx.append(chan[0,0])
-            else:
-                for B in a.BP_jones:
-                    if(B!=None):
-                        for chan in B:
-                            all_BP_xx.append(chan[0,0])
+                            all_BP_xx.append(chan[0,0]) 
+                else:
+                    if(band_0 > 128):
+                        #entire band is reversed
+                        if(a.BP_jones[self.n_bands -(b+1)] is not None):
+                           for chan in (a.BP_jones[self.n_bands -(b+1)]):
+                              all_BP_xx.append(chan[0,0]) 
+                    else:
+                        if(a.BP_jones[self.n_bands-(band_number-128)] is not None):
+                            for chan in (a.BP_jones[self.n_bands-(band_number-128)]):
+                                all_BP_xx.append(chan[0,0])
+
+
         return all_BP_xx
 
     def BP_jones_amps(self,antenna=0):
@@ -177,46 +226,77 @@ class rts_cal():
                 for chan in B:
                     bp_band_amps.append(abs(chan))
             bp_jones_amps.append(bp_band_amps)
-
+            
         return bp_jones_amps
 
-    def all_single_jones(self,antenna=0,reverse_bands=False,correct_gain_jump=True,conjugate_jones=True,pol='xx'):
-        all_single_xx = []
-        all_single_yy = []
+    def all_single_jones(self,antenna=0,reverse_bands=False,correct_gain_jump=True,conjugate_jones=True,pol='xx',cent_chan=12):
+        all_single_jones = [[[],[]],[[],[]]]
+#        all_single_xx = []
+#        all_single_yy = []
         a = self.antennas[antenna]
+        band_0 = cent_chan - 12
         if(a!=None):
-            if(reverse_bands):
-                for idx,B in enumerate(reversed(a.Single_jones)):
-                    if(B!=None):
-                        for chan in B:
-                            if(conjugate_jones):
-                                chan_j = inner(chan,conj(chan))
-                            else:
-                                chan_j = chan
-                            if(correct_gain_jump):
-                                if(idx >=16):
-                                    all_single_xx.append(0.25 * chan_j[0,0])
-                                    all_single_yy.append(0.25 * chan_j[1,1])
-                                else:
-                                    all_single_xx.append(chan_j[0,0])
-                                    all_single_yy.append(chan_j[1,1])
-                            else:
-                               all_single_xx.append(chan_j[0,0])
-                               all_single_yy.append(chan_j[1,1])
-            else:
-                for B in a.Single_jones:
-                    if(B!=None):
-                        for chan in B:
-                            all_single_xx.append(chan[0,0])
-                            all_single_yy.append(chan[1,1])
+            for b,B in enumerate(a.BP_jones):
+                band_number = b + cent_chan - 12
+                if(band_number > 128):
+                    if(band_0 > 128):
+                        #entire band is reversed
+                        if(a.Single_jones[self.n_bands -(b+1)] is not None):
+                           for chan in a.Single_jones[self.n_bands -(b+1)]:
+                               #
+                               all_single_jones[0][0].append(chan[0,0])
+                               all_single_jones[0][1].append(chan[0,1])
+                               all_single_jones[1][0].append(chan[1,0])
+                               all_single_jones[1][1].append(chan[1,1])
+                               #all_single_xx.append(chan[0,0])
+                               #all_single_yy.append(chan[1,1])
+                    else:
+                        if(a.Single_jones[self.n_bands-(band_number-128)] is not None):
+                            for chan in a.Single_jones[self.n_bands-(band_number-128)]:
+                                #all_single_xx.append(chan[0,0])
+                                #all_single_yy.append(chan[1,1])
+                                all_single_jones[0][0].append(chan[0,0])
+                                all_single_jones[0][1].append(chan[0,1])
+                                all_single_jones[1][0].append(chan[1,0])
+                                all_single_jones[1][1].append(chan[1,1])
+                            
+                            
+#            if(reverse_bands):
+#                for idx,B in enumerate(reversed(a.Single_jones)):
+#                    if(B!=None):
+#                        for chan in B:
+#                            if(conjugate_jones):
+#                                chan_j = inner(chan,conj(chan))
+#                           else:
+#                                chan_j = chan
+#                            if(correct_gain_jump):
+#                                if(idx >=16):
+#                                    all_single_xx.append(0.25 * chan_j[0,0])
+#                                    all_single_yy.append(0.25 * chan_j[1,1])
+#                                else:
+#                                    all_single_xx.append(chan_j[0,0])
+#                                    all_single_yy.append(chan_j[1,1])
+#                            else:
+#                               all_single_xx.append(chan_j[0,0]) 
+#                               all_single_yy.append(chan_j[1,1])
+                else:
+                    if(a.Single_jones[b] is not None):
+                      for chan in a.Single_jones[b]:  
+                          #all_single_xx.append(chan[0,0])
+                          #all_single_yy.append(chan[1,1])
+                          all_single_jones[0][0].append(chan[0,0])
+                          all_single_jones[0][1].append(chan[0,1])
+                          all_single_jones[1][0].append(chan[1,0])
+                          all_single_jones[1][1].append(chan[1,1])
 
-        return all_single_xx, all_single_yy
+        #return all_single_xx, all_single_yy
+        return all_single_jones
 
     def write_UCLA_cal(self,filename=None,reverse_bands=True):
 
         if(self.metafile is None):
             print "Error: Use load_metadata to define metafits file"
-        else:
+        else:    
             meta_file = fits.open(self.metafile)
         antenna_n = meta_file[1].data['Antenna']
         tile_n = meta_file[1].data['Tile']
@@ -254,17 +334,17 @@ class rts_cal():
                            else:
                                flag = 1
                                single_jones = zeros((2,2))
-
+                               
                            out_file.write("%s %s %6.3f %s %.5f %f %f %d\n" % (ant2tile[k],k,self.freqs[i_n*n_chan+ j]/1.0e6,pols[p1][p2],self.mjd,real(single_jones[p1,p2]),imag(single_jones[p1,p2]),flag))
 
 #                for i in range(self.n_ants):
 #                    if(ant2rts[i] not in self.flagged_antennas):
-#                        flag = 0
+#                        flag = 0 
 #                        single_jones = self.antennas[ant2rts[i]].Single_jones
 #                    else:
 #                        flag = 1
 #                        single_jones = zeros((24,16,2,2))
-#                    for B in single_jones:
+#                    for B in single_jones: 
 #                        if(B!=None):
 #                            for chan in B:
 #                                out_file.write("%s %s %6.3f %s %.5f %f %f %d\n" % (i,tile_n[2*i],freq,pols[p1][p2],self.mjd,real(chan[p1,p2]),imag(chan[p1,p2]),flag))
@@ -277,6 +357,7 @@ class rts_antenna():
         self.BP_jones = [None] * n_bands
         self.DI_jones = [None] * n_bands
         self.Single_jones = [None] * n_bands
+        self.DI_jones_ref = [None] * n_bands
 
     def average_BP_jones(self,fscrunch=2):
         for idx,B in enumerate(self.BP_jones):
@@ -287,10 +368,9 @@ class rts_antenna():
 
     def form_single_jones(self):
         for idx,[B,DI] in enumerate(zip(self.BP_jones,self.DI_jones)):
-            if(B!=None):
+            if(B is not None):
                 self.Single_jones[idx] = [DI * bp for bp in B]
-
-
+                self.Single_jones[idx] = [s * (matrix(self.DI_jones_ref[idx])).I for s in self.Single_jones[idx]]
 
 def write_BP_files(raw_cal,fit_cal,filename='test'):
     from cmath import phase
@@ -299,7 +379,7 @@ def write_BP_files(raw_cal,fit_cal,filename='test'):
     flagged_channels = [0,1,16,30,31]
     bp_freqs = "0.080000, 0.120000, 0.160000, 0.200000, 0.240000, 0.280000, 0.320000, 0.360000, 0.400000, 0.440000, 0.480000, 0.520000, 0.560000, 0.600000, 0.680000, 0.720000, 0.760000, 0.800000, 0.840000, 0.880000, 0.920000, 0.960000, 1.000000, 1.040000, 1.080000, 1.120000, 1.160000\n"
     for n in range(n_bands):
-        band_file = filename + '%03d.dat' % (n+1)
+        band_file = 'Bandpass_' + filename + '%03d.dat' % (n+1)
         fp = open(band_file,'w+')
         fp.write(bp_freqs)
         for i in range(n_tiles):
@@ -317,5 +397,33 @@ def write_BP_files(raw_cal,fit_cal,filename='test'):
                                 if(ch_n not in flagged_channels):
                                     fp.write(', %f, %f' % (abs(ch[pol1,pol2]), phase(ch[pol1,pol2])))
                             fp.write('\n')
-
+                    
         fp.close()
+
+def write_DI_files(rts_cal,filename='test'):
+    n_bands = 24
+    inv0_entry = "+1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0\n"
+    for n in range(n_bands):
+       band_file = 'DI_Jones_' + filename + '%03d.dat' % (n+1)
+       fp = open(band_file,'w+')
+       fp.write("1.0\n")
+       #       fp.write("%s" % inv0_entry)
+       fp.write('%7.6f, %7.6f, %7.6f, %7.6f, %7.6f, %7.6f, %7.6f, %7.6f\n' % (real(rts_cal.antennas[0].DI_jones_ref[n][0,0]), imag(rts_cal.antennas[0].DI_jones_ref[n][0,0]),real(rts_cal.antennas[0].DI_jones_ref[n][0,1]), imag(rts_cal.antennas[0].DI_jones_ref[n][0,1]),real(rts_cal.antennas[0].DI_jones_ref[n][1,0]), imag(rts_cal.antennas[0].DI_jones_ref[n][1,0]),real(rts_cal.antennas[0].DI_jones_ref[n][1,1]), imag(rts_cal.antennas[0].DI_jones[n][1,1])))   
+       
+       for a in rts_cal.antennas:
+           if(a.DI_jones[n] is None):
+             fp.write("+0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0\n") 
+           else:
+               fp.write('%7.6f, %7.6f, %7.6f, %7.6f, %7.6f, %7.6f, %7.6f, %7.6f\n' % (real(a.DI_jones[n][0,0]), imag(a.DI_jones[n][0,0]),real(a.DI_jones[n][0,1]), imag(a.DI_jones[n][0,1]),real(a.DI_jones[n][1,0]), imag(a.DI_jones[n][1,0]),real(a.DI_jones[n][1,1]), imag(a.DI_jones[n][1,1])))   
+    
+
+                
+            
+        
+        
+            
+        
+        
+
+
+            

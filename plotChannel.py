@@ -60,6 +60,61 @@ class Observations:
                         f.write("%f, "%self.ally_obs_dict[obs][antenna][channel])
                     f.write("\n")
 
+    def plotChannel(self, channel):
+
+        colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
+
+        sp = 0
+        ppl = 16
+        maxv = 1.5
+
+        fig = plt.figure(figsize=(18.0, 10.0))
+
+        #Create the xtick labels
+        timelist = []
+        for obs in self.obs_list:
+            date = datetime.datetime.fromtimestamp(float(obs) + 315964782)
+            timelist.append(str(date.day) + '/' + str(date.month) + ':' + str(date.hour) + ':' + str(date.minute) + '.' + str(date.second))
+
+        for ii in range(128):
+            xlist = []
+            ylist = []
+            for obs in self.obs_list:
+                xlist.append(self.allx_obs_dict[obs][ii][channel])
+                ylist.append(self.ally_obs_dict[obs][ii][channel])
+
+            ax = fig.add_subplot(8,16,sp+1,)
+            ax.plot(self.obs_list, xlist, color=colours[1])
+            ax.plot(self.obs_list, ylist, color=colours[2])
+
+            ax.set_xticklabels(timelist)
+            #ax.tick_params('x', labelrotation=90)
+            plt.title('Tile %d'%ii)
+
+            if ppl != 16:
+                plt.setp(ax.get_xticklabels(), visible=False) # plot setup
+                plt.setp(ax.get_yticklabels(), visible=False)
+
+            if ppl == 16:
+                ppl = 0
+                plt.setp(ax.get_xticklabels(), visible=False)
+            ppl += 1
+
+            plt.ylim([-0.1,maxv])
+
+            if sp == 15:
+                XX_amp, = ax.plot([],[], colours[1],label='XX',linewidth=3.0)
+                YY_amp, = ax.plot([],[], colours[2],label='YY',linewidth=3.0)
+                ax.legend((XX_amp,YY_amp),('XX','YY'), bbox_to_anchor=(0, 2, .12, .12),prop={'size':14})
+
+            sp += 1
+
+        plt.tight_layout()
+        fig.subplots_adjust(top=0.9)
+        plt.suptitle('Amps | Channel %d' %(channel),fontsize=14)
+        print(timelist)
+        plt.show()
+
 
     def plotObservation(self, obs):
 
@@ -111,5 +166,5 @@ class Observations:
 
 tileloader = Observations()
 tileloader.load_observations(basepath='/lustre/projects/p048_astro/MWA/data', obsids = [sys.argv[1]])
-#tileloader.saveObservations("observations.txt")
-tileloader.plotObservation(obs=sys.argv[1])
+tileloader.saveObservations("observations.txt")
+#tileloader.plotObservation(obs=sys.argv[1])

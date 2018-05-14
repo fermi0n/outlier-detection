@@ -1,5 +1,5 @@
 import glob
-from pylab import *
+#from pylab import *
 import argparse
 #matplotlib.use('Agg')
 
@@ -14,39 +14,11 @@ import time
 #import seaborn as sns
 #from scipy.spatial.distance import pdist, squareform
 
-obsIDs = [
-'1061311664',
-'1061312392',
-'1061312520',
-'1061312880',
-'1061313008',
-'1061313248',
-'1061312392',
-'1061312520',
-'1061312760',
-'1061312880',
-'1061313008',
-'1061313248',
-'1061313496',
-'1061313736',
-'1061313856',
-'1061313984',
-'1061314104',
-'1061314224',
-'1061314344',
-'1061314472',
-'1061314592',
-'1061314712',
-'1061314832',
-'1061314960',
-'1061316296']
-
-
 class TileData:
     def __init__(self):
         self.obs_list = []
-        self.all_xx = [None] * 128
-        self.all_yy = [None] * 128
+#        self.all_xx = [None] * 128
+#        self.all_yy = [None] * 128
 
         self.allx_obs_dict = {}
         self.ally_obs_dict = {}
@@ -60,6 +32,7 @@ class TileData:
         self.problem_obs_list = []
 
         self.discretisedAmps = {}
+        self.metadata_dict = {}
 
     def load_observations(self, basepath = '.', obsids = None):
 
@@ -67,16 +40,19 @@ class TileData:
             try:
                 cals_loader = CalsLoader.CalsLoader()
                 cals_loader.obtainAmplitudeforObservation(basepath + '/'+ obs)
-
+                print("Loaded from cals_loader")
                 self.allx_obs_dict[obs] = cals_loader.JPX
                 self.ally_obs_dict[obs] = cals_loader.JQY
                 self.obs_list.append(obs)
                 self.discretisedAmps[obs] = [None]*128
+                self.metadata_dict[obs] = cals_loader.metadata
 
             except Exception, err:
+                print("Error loading observation %s, Error is: %s"%(obs, err))
                 self.problem_obs_list.append(obs)
 
         print("Problem Obs IDs are ", self.problem_obs_list)
+        print("Good Obs IDs are ", self.obs_list)
 
     def scaleObservations(self):
 
@@ -131,6 +107,12 @@ class TileData:
                     for channel, value in enumerate(self.ally_obs_dict[obs][antenna]):
                         f.write("%f, "%self.ally_obs_dict[obs][antenna][channel])
                     f.write("\n")
+        f.close()
+        f = open((filename.split('.')[0])+".meta", "w+")
+        for obs in self.obs_list:
+            f.write("%s,%s,%s" %(obs,self.metadata_dict[obs][0], self.metadata_dict[obs][1]))
+            f.write("\n")
+        f.close()
 
     #load observations from file written in the format given in the above method
     def loadObservationsFromFile(self, filename):
@@ -148,7 +130,7 @@ class TileData:
             else:
                 self.ally_obs_dict[values[0]][int(values[1])] = [float(i) for i in values[3:-1]]
         self.obs_list.sort()
-
+        f.close()
 
 if __name__ == "__main__":
 
@@ -160,12 +142,20 @@ if __name__ == "__main__":
     #parser.add_argument('-s', '--save', action='store_true', help="Save plot to file rather than display")
     parser.add_argument("observations", nargs='*', help="Observation IDs")
     args = parser.parse_args()
-    print("Loading observations into memory:")
+    print("Loading all these observations into memory:")
     print(args.observations)
-    tileloader.load_observations(basepath=args.path, obsids=args.observations)
-    print("Saving observations to file")
-    print(args.file)
-    tileloader.saveObservations(args.file)
+    if (len(args.observations) > 20):
+        print ("Usage: Don't provide more than 20 observations. Later need to think about allowing this and splitting the load function into multiples")
+        sys.exit(0)
+    for obs in args.observations:
+	tileloader.load_observations(basepath=args.path, obsids=[obs])
+    	print("Saving observations to file")
+    	print(args.file)
+    	tileloader.saveObservations(args.file)
+#    tileloader.load_observations(basepath=args.path, obsids=args.observations)
+    #print("Saving observations to file")
+    #print(args.file)
+    #tileloader.saveObservations(args.file)
 
     #print(tileloader.allx_obs_dict['1061313248'][126])
     #knn = DataAnalysis.KNNAnalysis()

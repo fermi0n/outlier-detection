@@ -2,8 +2,8 @@
 #
 # script that reads in a TLE file, estimates the power output by the beamformer, and plots the result.
 
-import matplotlib
-matplotlib.use('Agg')
+#import matplotlib
+#matplotlib.use('Agg')
 import sys, getopt, string, re, os
 from astropy.io import fits as pyfits
 from pylab import *
@@ -25,6 +25,7 @@ class CalsLoader:
 		self.JPX = []
 		self.JQY = []
 		self.chan_sel = []
+		self.metadata = []
 
 	def DI_factors(self, DI_file):
 		sel_offset = 1
@@ -144,6 +145,8 @@ class CalsLoader:
 
 		chan_sel = sel_offset - 1 + 2*array(freq_idx)
 
+		print("Debug location 5")
+
 		for lineIndex in range(1, len(lines), 8):  # get 0, 8, 16, ...
 			tmp = string.split( lines[lineIndex+0], ',' ); PX_lsq.append([]); PX_lsq[-1]=zeros(N_ch*2+1)
 			for k in range(0,len(tmp)): PX_lsq[-1][k] = float(tmp[k])
@@ -162,6 +165,7 @@ class CalsLoader:
 			tmp = string.split( lines[lineIndex+7], ',' ); QY_fit.append([]); QY_fit[-1]=zeros(N_ch*2+1)
 			for k in range(0,len(tmp)): QY_fit[-1][k] = float(tmp[k])
 
+		print("Debug location 6")
 		N_ant = len(PX_lsq)
 
 		PXX_lsq = zeros([N_ant,len(PX_lsq[1])-1])
@@ -179,7 +183,7 @@ class CalsLoader:
 
 	        #print 'ggo',ggo[1][126][0,0], ggo[1][127][0,0]
 
-
+		print("Debug location 7")
 		ggo = np.delete(ggo,[int(f) for f in flg_t if f is not ''],axis=1)
 
 		for sb in range(0,len(bins)):
@@ -193,6 +197,7 @@ class CalsLoader:
 				gg[sb][nn][3,0] = sqrt(ggo[sb][nn][1,1].real**2 + ggo[sb][nn][1,1].imag**2)
 				gg[sb][nn][3,1] = math.atan2(ggo[sb][nn][1,1].imag,ggo[sb][nn][1,1].real)
 
+		print("Debug location 8")
 
 		# multipling by the DI_JM
 		for nn in range(0,int(N_ant)):
@@ -218,7 +223,11 @@ class CalsLoader:
 		k = 0
 		ann = 0
 
+		print("Debug location 9")
+		print("N_ch is %d" %N_ch)
+
 		for nn in range(0,128):
+			print("Debug location 9.%d" %nn)
 			PX_lsq.append([]); PX_lsq[-1]=zeros(N_ch*2)
 			PY_lsq.append([]); PY_lsq[-1]=zeros(N_ch*2)
 			QX_lsq.append([]); QX_lsq[-1]=zeros(N_ch*2)
@@ -226,11 +235,13 @@ class CalsLoader:
 			if str(nn) in flg_t:
 				finto = 12
 			else:
+				print("ann is %d" %ann)
 				PX_lsq[-1][:] = PXX_lsq[ann][:]
 				PY_lsq[-1][:] = PYY_lsq[ann][:]
 				QX_lsq[-1][:] = QXX_lsq[ann][:]
 				QY_lsq[-1][:] = QYY_lsq[ann][:]
 				ann += 1
+		print("Debug location 10")
 		# ===========================
 		# test for transpose conjugate of J
 		tra = 1
@@ -255,7 +266,7 @@ class CalsLoader:
 					Jp[at,qt,1,1] = (QY_lsq[at][qq]*(math.cos(QY_lsq[at][qq+1]) + math.sin(QY_lsq[at][qq+1])*1j))/dgains[gel]
 					qq += 2
 
-
+			print("Debug location 11")
 			for at in range(0,128):
 				for qt in range(0,qtt):
 					JpH[at,qt] = np.conjugate(np.transpose(Jp[at,qt]))
@@ -276,12 +287,13 @@ class CalsLoader:
 					JQY[-1][tq] = sqrt(JJ[at,qt,1,1].real**2 + JJ[at,qt,1,1].imag**2)
 					JQY[-1][tq+1] = math.atan2(JJ[at,qt,1,1].imag,JJ[at,qt,0,0].real)
 					tq += 2
-
+			print("Debug location 15")
 		# ===========================
 
 	#	print "plotting Jones amps for %d frequency channels and %d antennas" % (N_ch, N_ant)
 #		print "Printing argo"
 #		print argo
+		print("Debug location 20")
 		self.JPX = [JPX[ii][chan_sel] for ii in argo]
 		self.JQY = [JQY[ii][chan_sel] for ii in argo]
 		self.chan_sel = chan_sel
@@ -316,17 +328,37 @@ class CalsLoader:
 		#Added 13/2/2018
 		text = hdulist[0].header['CHANNELS']
 		chls = text.split(',')
-		print(text)
-		print(chls[0])
-		if (int(chls[0]) <= 128):
-			print("Whoa: The first base channel ", chls[0], " is less than 128.")
-			raise RuntimeError("First base channel is less than 128")
+		gridnum = hdulist[0].header['GRIDNUM']
+		self.metadata = [gridnum, chls[0]]
+		#print(text)
+		#print(chls[0])
+
 		#if(options.apply_digital_gains):
 	#	if (1==2):
 		#	dg = list(gains[0,:]/64.0)
 #		else:
 			#dg = np.ones(len(gains[0,:]))
 		dg = [1] * len(gains[0,:])
+
+		if (int(chls[0]) <= 128):
+			print("First base channel ", chls[0], " is less than 128. Handling it though.")
+			#raise RuntimeError("First base channel is less than 128")
+			diff = 128-int(chls[0])
+			dritto = sorted(bpp_file)
+			rove = sorted(bpp_file, reverse=True)
+			bp_file = dritto[0:(diff+1)]+rove[0:(23-diff)]
+			dritto2 = sorted(dii_file)
+			rove2 = sorted(dii_file, reverse=True)
+			di_file = dritto2[0:(diff+1)]+rove2[0:(23-diff)]
+			dgrev = dg[::-1]
+			dgains = dgrev[0:23-diff]+dg[0:diff+1]
+			calid = 'NA'
+		else:
+		#Added this line - i.e. assume that the base channel is > 128
+			bp_file = sorted(bpp_file, reverse=True)
+			di_file = sorted(dii_file, reverse=True)
+			dgains = dg
+			calid = 'NA'
 
 		##Look for the master log, either with a speific search path or not
 		#if search:
@@ -367,13 +399,8 @@ class CalsLoader:
 		# 		if '<' in lina:
 		# 			calid = lina[lina.find("<")+1:lina.find(">")]
 
-		#Added this line - i.e. assume that the base channel is > 128
-		bp_file = sorted(bpp_file, reverse=True)
-		di_file = sorted(dii_file, reverse=True)
-		dgains = dg
-		calid = 'NA'
-
 		#------ loop on files
+		print ("Debug location 1")
 		lines = []
 		counter = 1
 		ggo = []
@@ -417,6 +444,7 @@ class CalsLoader:
 			ggo.append(self.DI_factors(di_file[bbb]))
 
 		#-------------------------------------------------------------
+		print("Debug location 2")
 		#read in the instr_config
 		tiles=[]
 		try:
@@ -466,7 +494,7 @@ class CalsLoader:
 		# 			for flg in flgs.split(','):
 	    #                                    # if(options.ignore_flagged_tiles_text == False):
 		# 								    if flg not in flg_t: flg_t.append(flg)
-
+		print("Debug location 3")
 		supr = []
 		for e in tiles:
 			subb = e.strip('Tile')
@@ -476,7 +504,7 @@ class CalsLoader:
 		#----------------------------------
 
 		data = [argo,lines,bins,dgains,ggo,flg_t,tiles,calid,JD]
-
+		print("Debug location 4")
 		##Create a plot for either/both phase or amplitude
 		if self.sel_offset == 0 or self.sel_offset == 1: self.getAmplitudes(1,data)
 		#if sel_offset == 0 or sel_offset == 2: phase_or_amp(2,data)
