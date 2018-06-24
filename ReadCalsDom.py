@@ -65,10 +65,19 @@ for obs in obs_list:
     # this case we read the raw values which are probably more interesting
     # for QA
 
-    raw_cal.load_all_BP_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,options.subdir), raw=True)
-    raw_cal.load_all_DI_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,options.subdir))
-    # Forms a product of the BP and DI Jones terms
-    raw_cal.form_single_jones()
+    #Adding some error handling. If this fails, then just skip this Observation
+    try:
+        raw_cal.load_all_BP_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,options.subdir), raw=True)
+        raw_cal.load_all_DI_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,options.subdir))
+        # Forms a product of the BP and DI Jones terms
+        raw_cal.form_single_jones()
+    except IOError as e:
+        print("Couldn't load this one")
+        print e
+        continue
+    except:
+        continue
+
 
     # The single jones matrices are still carried in the normal RTS per
     # coarse channel representation. For ease of inspection, we call a

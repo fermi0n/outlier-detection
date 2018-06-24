@@ -9,8 +9,8 @@ import scipy.spatial.distance as ssd
 from core import kshape, zscore, _sbd
 from operator import itemgetter
 import DataAnalysis as da
-from TileDataAnalysis import DataAnalyserByTile
-import CalsLoader
+#from TileDataAnalysis import DataAnalyserByTile
+#import CalsLoader
 import argparse
 import pickle
 import itertools
@@ -81,9 +81,8 @@ class DataAnalyserByTile:
         return silhouettes
 
 
-    def TileKShapeClustering(self, tile):
+    def TileDistanceMatrixCalculator(self):
 
-        #First create an array of tile amplitudes
         listoftiles = []
         print self.obs_list
         for obs in self.obs_list:
@@ -123,8 +122,13 @@ class DataAnalyserByTile:
                     exit(0)
                 R[obs][obs2] = R[obs2][obs] = distance
 
-        print (R)
+        #print (R)
         self.distancematrix_dict = R
+
+    def TileKShapeClustering(self, tile):
+
+        self.TileDistanceMatrixCalculator()
+        R = self.distancematrix_dict
 
         #Now, we need to follow the hierarchical clustering algorithm
         #clusternums = len(self.obs_list)
@@ -176,25 +180,31 @@ class DataAnalyserByTile:
         return listofsilhouettes, listofclusters
 
 
+    def TileDBScanClustering(self, epsilon):
+        #Assume that the distance matrix has already been created
+        R = self.distancematrix_dict
 
-    def load_observations(self, tile, obsids, basepath):
 
-        for obs in obsids:
-            try:
-                cals_loader = CalsLoader.CalsLoader()
-                cals_loader.obtainAmplitudeforObservation(basepath + '/'+ obs)
 
-                self.allx_obs_dict[obs] = cals_loader.JPX[tile]
-                self.ally_obs_dict[obs] = cals_loader.JQY[tile]
-                self.obs_list.append(obs)
-                self.metadata_dict[obs] = cals_loader.metadata
-
-            except Exception, err:
-                print("Error loading observation ", obs, "Error is:", err)
-                self.problem_obs_list.append(obs)
-
-        print("Problem Obs IDs are ", self.problem_obs_list)
-        print("Good Obs IDs are ", self.obs_list)
+#TODO: NEED TO MODIFY THIS SUCH THAT IT USES THE NEW VERSION (READCALSDOM)
+    # def load_observations(self, tile, obsids, basepath):
+    #
+    #     for obs in obsids:
+    #         try:
+    #             cals_loader = CalsLoader.CalsLoader()
+    #             cals_loader.obtainAmplitudeforObservation(basepath + '/'+ obs)
+    #
+    #             self.allx_obs_dict[obs] = cals_loader.JPX[tile]
+    #             self.ally_obs_dict[obs] = cals_loader.JQY[tile]
+    #             self.obs_list.append(obs)
+    #             self.metadata_dict[obs] = cals_loader.metadata
+    #
+    #         except Exception, err:
+    #             print("Error loading observation ", obs, "Error is:", err)
+    #             self.problem_obs_list.append(obs)
+    #
+    #     print("Problem Obs IDs are ", self.problem_obs_list)
+    #     print("Good Obs IDs are ", self.obs_list)
 
     def load_observationsfromFile(self, filename):
 
@@ -265,7 +275,7 @@ class DataAnalyserByTile:
 
                 sp += 1
 
-                plt.tight_layout()
+                #plt.tight_layout()
                 fig.subplots_adjust(top=0.9)
                 plt.suptitle('Amps | %s' %(clustername),fontsize=18)
 
@@ -329,7 +339,7 @@ class DataAnalyserByTile:
         ax.set_title(name)
         fig.colorbar(cax, orientation='vertical')
         if (saveflag):
-            plt.savefig('%s_%s.png'%(name, time.strftime("%d%b_%H:%M:%S", time.localtime())))
+            plt.savefig('%s.png'%(name))
         else:
             plt.show()
 
@@ -343,6 +353,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--path', help="Base path where the observations are kept", default='/lustre/projects/p048_astro/MWA/data')
     parser.add_argument('-n', '--numclusters', help="Number of clusters to plot", type=int, default=2)
     parser.add_argument('-t', '--tile', help="Tile to perform analysis on", type=int)
+    parser.add_argument('-x', '--xcut', help="Cut the observations into pieces")
     parser.add_argument("observations", nargs='*', help="Observation IDs to load")
 
     args = parser.parse_args()
@@ -352,7 +363,8 @@ if __name__ == '__main__':
             print("Usage: Must provide list of observations to assess on")
             sys.exit(0)
         else:
-            tileloader.load_observations(args.tile, args.observations, args.path)
+            print("Removed this step - TODO: Review")
+            #tileloader.load_observations(args.tile, args.observations, args.path)
 
     else:
 
@@ -360,14 +372,20 @@ if __name__ == '__main__':
 
     listofsilhouettes, listofclusters = tileloader.TileKShapeClustering(args.tile)
 
+    print("Printing list of clusters")
+    print(listofclusters)
+
+    obstarget = '1124057760'
     #now plot these
     if (args.tile==None):
         name="Cluster:"
     else:
-        name= "Tile:" + str(args.tile) + ",Cluster:"
+        name= "Tile:" + str(args.tile) + "Cluster:"
 
     for index, cluster in enumerate(listofclusters[args.numclusters]):
         tileloader.plotCluster(cluster, listofsilhouettes[args.numclusters], name + str(index), True)
+        for obs in cluster:
+            print("%s,%s"%(obs, index))
 
     tileloader.plotCluster(tileloader.NaN_list, None, "Tile:" + str(args.tile) + "-Cluster:NaNs", True)
     tileloader.plotDistancesHeatMap(listofclusters[args.numclusters], tileloader.obs_list, name='%d-Clusterheatmap'%args.tile, saveflag=True)

@@ -3,7 +3,7 @@ import scipy.stats as ss
 import scipy.spatial.distance as ssd
 from core import kshape, zscore, _sbd
 from operator import itemgetter
-import TileData as tl
+#import TileData as tl
 #Uncomment below line to use DTW
 #import mlpy as mlpy
 #import matplotlib.pyplot as plt
