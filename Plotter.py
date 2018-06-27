@@ -161,7 +161,7 @@ if __name__ == "__main__":
             else:
                 plotter.plotChannel(tileloader, int(args.data))
 
-    else:  #Is an observation ID
+    else:  # Is an observation ID
         if args.file is None:  #i.e. loading from path
             tileloader.load_observations(basepath=args.path, obsids=[args.data])
         else:  #Loading from file
@@ -171,10 +171,14 @@ if __name__ == "__main__":
 
         if args.data in tileloader.obs_list:  #All is good - the observation ID was in the file or was found in the filesystem
             #Plot observation
+            # Check whether is a single tile or all
+            param = 'display'
             if args.save:
-                plotter.plotObservation(tileloader, args.data, 'save')
+                param = 'save'
+            if args.tile is not None:
+                plotter.plot_observation_tile(tileloader, args.data, args.tile, param)
             else:
-                plotter.plotObservation(tileloader, args.data)
+                plotter.plotObservation(tileloader, args.data, param)
         else:
             if args.file is None:
                 print("Usage: You did not provide a valid observation ID that we could find in path selected:")
