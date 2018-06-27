@@ -127,7 +127,7 @@ if __name__ == "__main__":
         if args.file == None:
             print("Usage: For speed reasons, if plotting a channel, must load data from file")
         else:
-            tileloader.loadObservationsFromFile(args.file)
+            tileloader.load_observations_from_file(args.file)
             #Plot channel
             if (args.save):
                 plotter.plotChannel(tileloader, int(args.data), 'save')
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         else:  #Loading from file
 	    #    print("Loading observations from file:")
 	     #   print(args.file)
-            tileloader.loadObservationsFromFile(args.file)
+            tileloader.load_observations_from_file(args.file)
 
         if (args.data in tileloader.obs_list):  #All is good - the observation ID was in the file or was found in the filesystem
             #Plot observation

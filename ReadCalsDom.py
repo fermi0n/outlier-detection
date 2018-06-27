@@ -22,10 +22,12 @@ parser.add_option('--mwa_dir',dest='mwa_dir',type='string',default=None,help='Ba
 
 parser.add_option('--tile', dest='tile', type='int',default=5,help='Tile number (antenna number) to analyse')
 
+parser.add_option('--split', action="store_true")
+
 (options, args) = parser.parse_args()
 
 obs_list = open(args[0]).readlines()
-obs_list = [l.split()[0] for l in obs_list]
+obs_list = [[l.split()[0], l.split()[1]] for l in obs_list]
 meta_file = fits.open(args[1])
 cal = 0
 
@@ -58,7 +60,7 @@ all_yy = [None] * 128
 
 tile = options.tile
 
-for obs in obs_list:
+for val in obs_list:
     raw_cal = RTS_cals.rts_cal()
     # Actually reading of calibration files. The BP files contain both the 'raw'
     # BP calibrations and the functional fits across each coarse channel. In
@@ -66,9 +68,14 @@ for obs in obs_list:
     # for QA
 
     #Adding some error handling. If this fails, then just skip this Observation
+    obs = val[0]
+    if (options.split):
+	subdir = val[1].split('/')[-1]
+    else:
+	subdir = options.subdir
     try:
-        raw_cal.load_all_BP_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,options.subdir), raw=True)
-        raw_cal.load_all_DI_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,options.subdir))
+        raw_cal.load_all_BP_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,subdir), raw=True)
+        raw_cal.load_all_DI_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,subdir))
         # Forms a product of the BP and DI Jones terms
         raw_cal.form_single_jones()
     except IOError as e:

@@ -115,13 +115,13 @@ class TileData:
         f.close()
 
     #load observations from file written in the format given in the above method
-    def loadObservationsFromFile(self, filename):
+    def load_observations_from_file(self, filename):
 
         f = open(filename, "r")
 
         for line in f:
             values = line.split(',')
-            if (values[0] not in self.obs_list):
+            if values[0] not in self.obs_list:
                 self.obs_list.append(values[0])
                 self.allx_obs_dict[values[0]] = [None]*128
                 self.ally_obs_dict[values[0]] = [None]*128

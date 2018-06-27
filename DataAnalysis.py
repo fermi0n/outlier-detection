@@ -154,7 +154,7 @@ if __name__ == '__main__':
     dm = DistanceMeasures()
     tileloader = tl.TileData()
     knn = KNNAnalysis()
-    tileloader.loadObservationsFromFile("observationsmodified.txt")
+    tileloader.load_observations_from_file("observationsmodified.txt")
 
     histogramdata, distances = knn.KShapeHistogram(tileloader)
 

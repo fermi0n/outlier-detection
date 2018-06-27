@@ -15,6 +15,24 @@ class Plotter:
     def __init__(self):
         random = 0
 
+    def plot_observation_tile(self, tiledata, obs, tile, output='display'):
+
+        colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
+
+        maxv = max (max(tiledata.allx_obs_dict[obs][tile], tiledata.ally_obs_dict[obs][tile]))
+        fig = plt.figure(figsize=(18.0, 10.0))
+
+        ax = fig.add_subplot(1, 1)
+
+        ax.plot(tiledata.allx_obs_dict[obs][tile], colours[1])
+        ax.plot(tiledata.ally_obs_dict[obs][tile], colours[2])
+        plt.title('Tile %d' %tile)
+
+        if (output == 'save'):
+            savefig('Amps_Obs_%s_Tile_%s.png' %(obs, tile), bbox_inches='tight')
+        else:
+            plt.show()
+
     def plotObservation(self, tiledata, obs, output='display'):
 
         colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
@@ -23,7 +41,7 @@ class Plotter:
         ppl = 16
         #maxv = 1000.0
         maxv = max(max([max(tiledata.allx_obs_dict[obs][ii]) for ii in range(128)]), max([max(tiledata.ally_obs_dict[obs][ii]) for ii in range(128)]))
-        print maxv
+        print (maxv)
 
         fig = plt.figure(figsize=(18.0, 10.0))
 
@@ -111,7 +129,7 @@ class Plotter:
 
         plt.tight_layout()
         fig.subplots_adjust(top=0.9)
-        plt.suptitle('Amps | Channel %d' %(channel),fontsize=14)
+        plt.suptitle('Amps | Channel %d' %channel, fontsize=14)
         print(timelist)
 
         if output == 'save':
@@ -128,36 +146,37 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--file', help="Obtain amplitude data from file", nargs='?')
     parser.add_argument('-p', '--path', help="Base path where the observations are kept", default='/lustre/projects/p048_astro/MWA/data')
     parser.add_argument('-s', '--save', action='store_true', help="Save plot to file rather than display")
+    parser.add_argument('-t', '--tile', type=int, help="Tile number to plot")
     parser.add_argument("data", help="Either channel number or observation ID")
     args = parser.parse_args()
     #Check if its a channel
-    if (int(args.data) in range(800)):
-        if args.file == None:
+    if int(args.data) in range(800):
+        if args.file is None:
             print("Usage: For speed reasons, if plotting a channel, must load data from file")
         else:
-            tileloader.loadObservationsFromFile(args.file)
+            tileloader.load_observations_from_file(args.file)
             #Plot channel
-            if (args.save):
+            if args.save:
                 plotter.plotChannel(tileloader, int(args.data), 'save')
             else:
                 plotter.plotChannel(tileloader, int(args.data))
 
     else:  #Is an observation ID
-        if args.file == None:  #i.e. loading from path
+        if args.file is None:  #i.e. loading from path
             tileloader.load_observations(basepath=args.path, obsids=[args.data])
         else:  #Loading from file
 	    #    print("Loading observations from file:")
 	     #   print(args.file)
-            tileloader.loadObservationsFromFile(args.file)
+            tileloader.load_observations_from_file(args.file)
 
-        if (args.data in tileloader.obs_list):  #All is good - the observation ID was in the file or was found in the filesystem
+        if args.data in tileloader.obs_list:  #All is good - the observation ID was in the file or was found in the filesystem
             #Plot observation
-            if (args.save):
+            if args.save:
                 plotter.plotObservation(tileloader, args.data, 'save')
             else:
                 plotter.plotObservation(tileloader, args.data)
         else:
-            if (args.file==None):
+            if args.file is None:
                 print("Usage: You did not provide a valid observation ID that we could find in path selected:")
                 print(args.path)
             else:
