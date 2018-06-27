@@ -20,12 +20,9 @@ class Plotter:
         colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
 
         maxv = max (max(tiledata.allx_obs_dict[obs][tile], tiledata.ally_obs_dict[obs][tile]))
-        fig = plt.figure(figsize=(18.0, 10.0))
 
-        ax = fig.add_subplot(1, 1)
-
-        ax.plot(tiledata.allx_obs_dict[obs][tile], colours[1])
-        ax.plot(tiledata.ally_obs_dict[obs][tile], colours[2])
+        plt.plot(tiledata.allx_obs_dict[obs][tile], colours[1])
+        plt.plot(tiledata.ally_obs_dict[obs][tile], colours[2])
         plt.title('Tile %d' %tile)
 
         if (output == 'save'):
