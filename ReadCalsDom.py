@@ -28,7 +28,7 @@ parser.add_option('--split', action="store_true")
 
 obs_list = open(args[0]).readlines()
 obs_list = [[l.split()[0], l.split()[1]] for l in obs_list]
-meta_file = fits.open(args[1])
+#meta_file = fits.open(args[1])
 cal = 0
 
 if(options.mwa_dir is None):
@@ -38,18 +38,18 @@ else:
 
 # the script currently uses a representative single metafits file to read things like the tilenames and cable types
 
-cent_chan = meta_file[0].header['CENTCHAN']
-rts_inputs = meta_file[1].data['Input']
-cables = meta_file[1].data['Flavors']
-tilenames = meta_file[1].data['Tile']
-cable_types = set(cables)
+# cent_chan = meta_file[0].header['CENTCHAN']
+# rts_inputs = meta_file[1].data['Input']
+# cables = meta_file[1].data['Flavors']
+# tilenames = meta_file[1].data['Tile']
+# cable_types = set(cables)
+#
+# cable_counts = dict(Counter(cables[::2]))
+# rts_ants = rts_inputs / 2
+# rts2cables = dict(zip(rts_ants[::2],cables[::2]))
+# rts2tiles = dict(zip(rts_ants[::2],tilenames[::2]))
 
-cable_counts = dict(Counter(cables[::2]))
-rts_ants = rts_inputs / 2
-rts2cables = dict(zip(rts_ants[::2],cables[::2]))
-rts2tiles = dict(zip(rts_ants[::2],tilenames[::2]))
-
-if(options.subdir is ''):
+if options.subdir is '':
     subdir = 'example'
 else:
     subdir = options.subdir
@@ -61,6 +61,24 @@ all_yy = [None] * 128
 tile = options.tile
 
 for val in obs_list:
+    if options.split:
+        subdir = val[1].split('/')[-1]
+    else:
+        subdir = options.subdir
+
+    meta_file = fits.open('%s/data/%s/%s/*.fits' %(mwa_dir, obs, subdir))
+
+    cent_chan = meta_file[0].header['CENTCHAN']
+    rts_inputs = meta_file[1].data['Input']
+    cables = meta_file[1].data['Flavors']
+    tilenames = meta_file[1].data['Tile']
+    cable_types = set(cables)
+
+    cable_counts = dict(Counter(cables[::2]))
+    rts_ants = rts_inputs / 2
+    rts2cables = dict(zip(rts_ants[::2], cables[::2]))
+    rts2tiles = dict(zip(rts_ants[::2], tilenames[::2]))
+
     raw_cal = RTS_cals.rts_cal()
     # Actually reading of calibration files. The BP files contain both the 'raw'
     # BP calibrations and the functional fits across each coarse channel. In
@@ -69,10 +87,7 @@ for val in obs_list:
 
     #Adding some error handling. If this fails, then just skip this Observation
     obs = val[0]
-    if (options.split):
-	subdir = val[1].split('/')[-1]
-    else:
-	subdir = options.subdir
+
     try:
         raw_cal.load_all_BP_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,subdir), raw=True)
         raw_cal.load_all_DI_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,subdir))
@@ -97,7 +112,7 @@ for val in obs_list:
         if (i != tile):
             continue
 
-        if(raw_cal.antennas[i].BP_jones[0] is not None):
+        if raw_cal.antennas[i].BP_jones[0] is not None:
             single_jones = raw_cal.all_single_jones(antenna=i,cent_chan=cent_chan)
         # Futher we separately gather just the XX and YY values into lists
             xx_abs = single_jones[0][0]
