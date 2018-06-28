@@ -173,16 +173,20 @@ if __name__ == "__main__":
     parser.add_argument("data", help="Either channel number or observation ID")
     args = parser.parse_args()
     #Check if its a channel
+    if args.save:
+        param = 'save'
+    else:
+        param = 'display'
     if int(args.data) in range(800):
         if args.file is None:
             print("Usage: For speed reasons, if plotting a channel, must load data from file")
         else:
             tileloader.load_observations_from_file(args.file)
             #Plot channel
-            if args.save:
-                plotter.plotChannel(tileloader, int(args.data), 'save')
+            if args.tile is not None:
+                plotter.plot_channel_tile(tileloader, int(args.data), args.tile, param)
             else:
-                plotter.plotChannel(tileloader, int(args.data))
+                plotter.plotChannel(tileloader, int(args.data), param)
 
     else:  # Is an observation ID
         if args.file is None:  #i.e. loading from path
@@ -195,9 +199,6 @@ if __name__ == "__main__":
         if args.data in tileloader.obs_list:  #All is good - the observation ID was in the file or was found in the filesystem
             #Plot observation
             # Check whether is a single tile or all
-            param = 'display'
-            if args.save:
-                param = 'save'
             if args.tile is not None:
                 plotter.plot_observation_tile(tileloader, args.data, args.tile, param)
             else:
