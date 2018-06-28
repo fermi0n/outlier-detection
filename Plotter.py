@@ -30,6 +30,32 @@ class Plotter:
         else:
             plt.show()
 
+    def plot_channel_tile(self, tiledata, channel, tile, output='display'):
+
+        colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
+
+        timelist = []
+        for obs in tiledata.obs_list:
+            date = datetime.datetime.fromtimestamp(float(obs) + 315964782)
+            timelist.append(str(date.day) + '/' + str(date.month) + ':' + str(date.hour) + ':' + str(date.minute) + '.' + str(date.second))
+
+        xlist = []
+        ylist = []
+        for obs in tiledata.obs_list:
+            xlist.append(tiledata.allx_obs_dict[obs][tile][channel])
+            ylist.append(tiledata.ally_obs_dict[obs][tile][channel])
+
+        plt.plot(xlist, colours[1])
+        plt.plot(ylist, colours[2])
+        plt.title('Tile %d Channel %d' %tile)
+        plt.xlabel("Observation")
+        plt.ylabel("Amps")
+
+        if (output == 'save'):
+            savefig('Amps_Channel_%s_Tile_%s.png' %(channel, tile), bbox_inches='tight')
+        else:
+            plt.show()
+
     def plotObservation(self, tiledata, obs, output='display'):
 
         colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
