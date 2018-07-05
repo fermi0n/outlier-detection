@@ -112,9 +112,7 @@ class DataAnalyserByTile:
         for (obs, tilevalue) in listoftiles:
             R[obs] = {}
         for counter, (obs, tilevalue) in enumerate(listoftiles):
-            #            listofscores = []
-            #Do this cleverly so we don't need to calculate kshapedistance twice for each pair, but we still retain a symmetric matrix
-            #listofscores = [R[i][counter] for i in range(counter)]
+
             for obs2,tilevalue2 in listoftiles[counter:]:
                 distance = da.DistanceMeasures.KShapeDistance(tilevalue, tilevalue2)
                 if (np.isnan(distance)):
@@ -275,7 +273,7 @@ class DataAnalyserByTile:
 
                 sp += 1
 
-                #plt.tight_layout()
+                plt.tight_layout()
                 fig.subplots_adjust(top=0.9)
                 plt.suptitle('Amps | %s' %(clustername),fontsize=18)
 

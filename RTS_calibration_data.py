@@ -18,7 +18,7 @@ class CalGains_data:
             values = line.split(',')
             if (values[0] not in self.obs_list):
                 self.obs_list.append(values[0])
-                if (!single_tile):
+                if (not single_tile):
                     self.allx_obs_dict[values[0]] = [None]*128
                     self.ally_obs_dict[values[0]] = [None]*128
 
