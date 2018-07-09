@@ -66,7 +66,9 @@ for val in obs_list:
     else:
         subdir = options.subdir
 
-    meta_file = fits.open('%s/data/%s/%s/*.fits' %(mwa_dir, obs, subdir))
+    obs = val[0]
+    files = glob.glob('%s/data/%s/%s/*.fits' %(mwa_dir, obs, subdir))
+    meta_file = fits.open(files[0])
 
     cent_chan = meta_file[0].header['CENTCHAN']
     rts_inputs = meta_file[1].data['Input']
@@ -86,7 +88,6 @@ for val in obs_list:
     # for QA
 
     #Adding some error handling. If this fails, then just skip this Observation
-    obs = val[0]
 
     try:
         raw_cal.load_all_BP_jones(path='%s/data/%s/%s/' % (mwa_dir,obs,subdir), raw=True)
