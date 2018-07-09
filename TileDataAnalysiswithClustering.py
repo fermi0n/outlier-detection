@@ -112,9 +112,7 @@ class DataAnalyserByTile:
         for (obs, tilevalue) in listoftiles:
             R[obs] = {}
         for counter, (obs, tilevalue) in enumerate(listoftiles):
-            #            listofscores = []
-            #Do this cleverly so we don't need to calculate kshapedistance twice for each pair, but we still retain a symmetric matrix
-            #listofscores = [R[i][counter] for i in range(counter)]
+
             for obs2,tilevalue2 in listoftiles[counter:]:
                 distance = da.DistanceMeasures.KShapeDistance(tilevalue, tilevalue2)
                 if (np.isnan(distance)):
@@ -241,12 +239,12 @@ class DataAnalyserByTile:
         it = iter(observations)
         listofobs = iter(lambda: tuple(itertools.islice(it, 128)), ())
         print("In plotCluster")
-        print listofobs
+    #    print listofobs
         for index, observations in enumerate(listofobs):
 
             sp = 0
             ppl = 16
-            print observations
+        #    print observations
             plt.clf()
             fig = plt.figure(figsize=(18.0, 10.0))
             for obsid, s in observations:
@@ -275,7 +273,7 @@ class DataAnalyserByTile:
 
                 sp += 1
 
-                #plt.tight_layout()
+                plt.tight_layout()
                 fig.subplots_adjust(top=0.9)
                 plt.suptitle('Amps | %s' %(clustername),fontsize=18)
 
@@ -323,8 +321,8 @@ class DataAnalyserByTile:
                 distances.append(R[obs][obs2])
                 #distances.insert(0, R[obs][obs2])
             Matrix.append(distances)
-        print("Matrix")
-        print(Matrix)
+    #    print("Matrix")
+    #    print(Matrix)
         data = np.array(Matrix)
 
         #print(data)
@@ -375,7 +373,7 @@ if __name__ == '__main__':
     print("Printing list of clusters")
     print(listofclusters)
 
-    obstarget = '1124057760'
+    #obstarget = '1124057760'
     #now plot these
     if (args.tile==None):
         name="Cluster:"

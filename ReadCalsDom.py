@@ -22,32 +22,23 @@ parser.add_option('--mwa_dir',dest='mwa_dir',type='string',default=None,help='Ba
 
 parser.add_option('--tile', dest='tile', type='int',default=5,help='Tile number (antenna number) to analyse')
 
-parser.add_option('--split', action="store_true")
+#parser.add_option('--split', action="store_true")
+
+parser.add_option('--metadata', action="store_true", help="If flag set, store the metadata in a separate file")
+
+parser.add_option('--nogains', action="store_true", help="If flag set, don't store gains")
 
 (options, args) = parser.parse_args()
 
 obs_list = open(args[0]).readlines()
 obs_list = [[l.split()[0], l.split()[1]] for l in obs_list]
-#meta_file = fits.open(args[1])
+
 cal = 0
 
 if(options.mwa_dir is None):
     mwa_dir = os.getenv('MWA_DIR','/astro/mwaeor/MWA/')
 else:
     mwa_dir = options.mwa_dir
-
-# the script currently uses a representative single metafits file to read things like the tilenames and cable types
-
-# cent_chan = meta_file[0].header['CENTCHAN']
-# rts_inputs = meta_file[1].data['Input']
-# cables = meta_file[1].data['Flavors']
-# tilenames = meta_file[1].data['Tile']
-# cable_types = set(cables)
-#
-# cable_counts = dict(Counter(cables[::2]))
-# rts_ants = rts_inputs / 2
-# rts2cables = dict(zip(rts_ants[::2],cables[::2]))
-# rts2tiles = dict(zip(rts_ants[::2],tilenames[::2]))
 
 if options.subdir is '':
     subdir = 'example'
@@ -71,9 +62,11 @@ for val in obs_list:
     meta_file = fits.open(files[0])
 
     cent_chan = meta_file[0].header['CENTCHAN']
+    gridnum = meta_file[0].header['GRIDNUM']
     rts_inputs = meta_file[1].data['Input']
     cables = meta_file[1].data['Flavors']
     tilenames = meta_file[1].data['Tile']
+    dipole_delays = meta_file[1].data['Delays']
     cable_types = set(cables)
 
     cable_counts = dict(Counter(cables[::2]))
@@ -82,6 +75,38 @@ for val in obs_list:
     rts2tiles = dict(zip(rts_ants[::2], tilenames[::2]))
 
     raw_cal = RTS_cals.rts_cal()
+
+    ##Order of delays is XX1,YY1,XX2,YY2 etc so select just XX   (JUST DO XX FOR NOW, TODO: ADD YY)
+    XX = arange(0,256,2).astype(int)
+
+    ##If a delay is set to 32, the dipole is flagged
+    tile_inds,dipole_flags = where(dipole_delays[XX,:] == 32)
+
+    tile_flags = tiles[tile_inds]
+
+    ##Make flags direction
+    flags_dict = {}
+    ##Set up lists to contain flags for tiles
+    #for tile in set(tile_flags):
+        #flags_dict['Tile%d' %int(tile)] = []
+
+    ##Populate flags. Allows for more than one flag per tile
+    for tilenum,dipole in zip(tile_flags,dipole_flags):
+        flags_dict['Tile%d' %int(tilenum)].append(int(dipole))
+
+    #If flagged to save the metadata
+    if (options.metadata):
+        f = open("metadata-" + str(tile) + ".txt", "a")
+        f.write("%s,%s,%s\n" %(obs, cent_chan, gridnum))
+        f.write("Tile %d," %tile)
+        for dipole in flags_dict['Tile%s'%tile]:
+            f.write("%d," %dipole)
+        f.write("\n")
+        f.flush()
+        f.close()
+    #If not flagged to skip the gains
+    if (options.nogains):
+        continue
     # Actually reading of calibration files. The BP files contain both the 'raw'
     # BP calibrations and the functional fits across each coarse channel. In
     # this case we read the raw values which are probably more interesting
