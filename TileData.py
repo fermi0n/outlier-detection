@@ -7,7 +7,7 @@ import numpy as np
 import DataAnalysis
 #import matplotlib.pyplot as plt
 import math
-import CalsLoader
+#import CalsLoader
 import datetime
 import time
 #import vatcode as vat
@@ -130,6 +130,15 @@ class TileData:
             else:
                 self.ally_obs_dict[values[0]][int(values[1])] = [float(i) for i in values[3:-1]]
         self.obs_list.sort()
+        f.close()
+
+    def load_metafits_from_file(self, filename):
+
+        f = open(filename, "r")
+        #Don't do the flagged dipoles just yet
+        for line in f:
+            values = line.split(',')
+            self.metadata_dict[values[0]] = [values[1], values[2]]
         f.close()
 
 if __name__ == "__main__":
