@@ -3,7 +3,7 @@ from astropy.io import fits
 from optparse import OptionParser,OptionGroup
 from matplotlib import pyplot as plt
 
-from numpy import conj, sqrt,zeros, fft, array,std, mean, polyfit, poly1d, arange, real, imag, median, shape, ravel
+from numpy import conj, sqrt,zeros, fft, array,std, mean, polyfit, poly1d, arange, real, imag, median, shape, ravel, where
 
 import glob
 from collections import Counter
@@ -22,7 +22,7 @@ parser.add_option('--mwa_dir',dest='mwa_dir',type='string',default=None,help='Ba
 
 parser.add_option('--tile', dest='tile', type='int',default=5,help='Tile number (antenna number) to analyse')
 
-#parser.add_option('--split', action="store_true")
+parser.add_option('--split', action="store_true")
 
 parser.add_option('--metadata', action="store_true", help="If flag set, store the metadata in a separate file")
 
@@ -82,7 +82,7 @@ for val in obs_list:
     ##If a delay is set to 32, the dipole is flagged
     tile_inds,dipole_flags = where(dipole_delays[XX,:] == 32)
 
-    tile_flags = tiles[tile_inds]
+    tile_flags = tilenames[tile_inds]
 
     ##Make flags direction
     flags_dict = {}
@@ -94,14 +94,16 @@ for val in obs_list:
     for tilenum,dipole in zip(tile_flags,dipole_flags):
         flags_dict['Tile%d' %int(tilenum)].append(int(dipole))
 
+    print(flags_dict)
     #If flagged to save the metadata
     if (options.metadata):
         f = open("metadata-" + str(tile) + ".txt", "a")
         f.write("%s,%s,%s\n" %(obs, cent_chan, gridnum))
-        f.write("Tile %d," %tile)
-        for dipole in flags_dict['Tile%s'%tile]:
-            f.write("%d," %dipole)
-        f.write("\n")
+	if 'Tile%s'%tile in flags_dict:
+            f.write("Tile %d," %tile)
+       	    for dipole in flags_dict.get('Tile%s'%tile):
+                f.write("%d," %dipole)
+            f.write("\n")
         f.flush()
         f.close()
     #If not flagged to skip the gains
