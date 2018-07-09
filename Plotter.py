@@ -30,27 +30,37 @@ class Plotter:
         else:
             plt.show()
 
-    def plot_channel_tile(self, tiledata, channel, tile, output='display'):
+    def plot_channel_tile(self, tiledata, channel, tile, output='display', metafits=None):
 
         colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
 
         timelist = []
-        for obs in tiledata.obs_list:
-            date = datetime.datetime.fromtimestamp(float(obs) + 315964782)
-            timelist.append(str(date.day) + '/' + str(date.month) + ':' + str(date.hour) + ':' + str(date.minute) + '.' + str(date.second))
+        sortedlist = sorted([int(obs) for obs in tiledata.obs_list])
+        for obs in sortedlist:
+            #date = datetime.datetime.fromtimestamp(float(obs) + 315964782)
+            #timelist.append(str(date.day) + '/' + str(date.month) + ':' + str(date.hour) + ':' + str(date.minute) + '.' + str(date.second))
+            timelist.append((obs - sortedlist[0]) / 248.0)
 
         xlist = []
         ylist = []
         for obs in tiledata.obs_list:
-            xlist.append(tiledata.allx_obs_dict[obs][tile][channel])
-            ylist.append(tiledata.ally_obs_dict[obs][tile][channel])
+            xlist.append(tiledata.allx_obs_dict[str(obs)][tile][channel])
+            ylist.append(tiledata.ally_obs_dict[str(obs)][tile][channel])
 
-        plt.plot(xlist, colours[1])
-        plt.plot(ylist, colours[2])
-        plt.title('Tile %d Channel %d' %tile)
-        plt.xlabel("Observation")
-        plt.ylabel("Amps")
+        fig, ax1 = plt.subplots()
+        ax1.plot(timelist, xlist, color='green', marker='o')
+        ax1.plot(timelist, ylist, color='red', marker='o')
+        ax1.set_title('Tile %d Channel %d' %(tile, channel))
+        ax1.set_xlabel("Observation")
+        ax1.set_ylabel("Amps")
 
+        if (metafits is not None):
+            pointings=[tiledata.metadata_dict[x][1] for x in sortedlist]
+            centchannels = [tiledata.metadata_dict[x][2] / 121.0 for x in sortedlist]
+
+            ax2 = ax1.twinx()
+            ax2.plot(timelist, pointings, color='yellow', marker='o')
+            ax2.plot(timelist, centchannels, color='blue', marker='o')
         if (output == 'save'):
             savefig('Amps_Channel_%s_Tile_%s.png' %(channel, tile), bbox_inches='tight')
         else:
@@ -167,6 +177,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', help="Obtain amplitude data from file", nargs='?')
+    parser.add_argument('-m', '--metafits', help="Obtain metafits information from file", nargs='?')
     parser.add_argument('-p', '--path', help="Base path where the observations are kept", default='/lustre/projects/p048_astro/MWA/data')
     parser.add_argument('-s', '--save', action='store_true', help="Save plot to file rather than display")
     parser.add_argument('-t', '--tile', type=int, help="Tile number to plot")
@@ -182,9 +193,11 @@ if __name__ == "__main__":
             print("Usage: For speed reasons, if plotting a channel, must load data from file")
         else:
             tileloader.load_observations_from_file(args.file)
+            if (args.metafits is not None):
+                tileloader.load_metafits_from_file(args.metafits)
             #Plot channel
             if args.tile is not None:
-                plotter.plot_channel_tile(tileloader, int(args.data), args.tile, param)
+                plotter.plot_channel_tile(tileloader, int(args.data), args.tile, param, metafits=args.metafits)
             else:
                 plotter.plotChannel(tileloader, int(args.data), param)
 
