@@ -141,7 +141,7 @@ class TileData:
             self.metadata_dict[values[0]] = [values[1], values[2][:-1]]  #insert this hack to get rid of the '\n'
         f.close()
         print("Loaded stuff into metadata_dict")
-        print(metadata_dict)
+        print(self.metadata_dict)
 
 if __name__ == "__main__":
 
