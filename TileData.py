@@ -138,7 +138,7 @@ class TileData:
         #Don't do the flagged dipoles just yet
         for line in f:
             values = line.split(',')
-            self.metadata_dict[values[0]] = [values[1], values[2]]
+            self.metadata_dict[values[0]] = [values[1], values[2][:-1]]  #insert this hack to get rid of the '\n'
         f.close()
         print("Loaded stuff into metadata_dict")
         print(metadata_dict)
