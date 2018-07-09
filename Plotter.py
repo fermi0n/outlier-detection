@@ -194,6 +194,7 @@ if __name__ == "__main__":
         else:
             tileloader.load_observations_from_file(args.file)
             if (args.metafits is not None):
+                print("Loading metafits")
                 tileloader.load_metafits_from_file(args.metafits)
             #Plot channel
             if args.tile is not None:
