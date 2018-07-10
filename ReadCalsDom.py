@@ -61,9 +61,12 @@ for val in obs_list:
     files = glob.glob('%s/data/%s/%s/*.fits' %(mwa_dir, obs, subdir))
     meta_file = fits.open(files[0])
 
-    cent_chan = meta_file[0].header['CENTCHAN']
-    gridnum = meta_file[0].header['GRIDNUM']
+    #cent_chan = meta_file[0].header['CENTCHAN']
+    #gridnum = meta_file[0].header['GRIDNUM']
+    cent_chan = meta_file[1].data['CENTCHAN']
+    gridnum = meta_file[1].data['GRIDNUM']
     rts_inputs = meta_file[1].data['Input']
+
     cables = meta_file[1].data['Flavors']
     tilenames = meta_file[1].data['Tile']
     dipole_delays = meta_file[1].data['Delays']
