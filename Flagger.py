@@ -14,6 +14,8 @@ class Flagger:
     time_stretch = 1.0/240.0   #Each observation is 0.5 apart
     freq_stretch = 0.5 #Each channel is 0.5 apart
     RADIUS = 10.0
+    EXPECTEDVALS = 2
+    GRAD = 0.4
 
     def __init__(self):
         self.obs_list = []
@@ -108,6 +110,67 @@ class Flagger:
             y_distance = np.sqrt(time_dist**2 + freq_dist**2 + (vector_one[3] - vector_two[3])**2)
             return x_distance, y_distance
 
+
+    def find_outliers(self, calgains_data):
+
+        #Convert things to a numpy 2D array rather than the dict of lists
+        #listoflists = map(list, calgains.allx_obs_dict.items())
+        #listoflists = [[int(key), value] for key, value in calgains.allx_obs_dict.items()]
+        #print(listoflists)
+        #df = pd.DataFrame([calgains.allx_obs_dict])
+        #print (df)
+        sortedkeys = sorted(calgains.allx_obs_dict.iterkeys())
+        flatlist = [calgains.allx_obs_dict[key] for key in sortedkeys]
+        print(flatlist)
+        arraylist = np.array(flatlist)
+        print(arraylist)
+        updatedsortedkeys = [(int(key) - int(sortedkeys[0])) / 248.0 for key in sortedkeys]
+        print(updatedsortedkeys)
+
+        outliers = []
+
+        #SIMPLIFIED MODEL!!! JUST FIND AREAS WHERE THE GRADIENT IN THE TIME OR THE FREQ DIRECTION IS > SOME values
+        #First check if all lengths are the same
+        listoflengths = [len(rows) for rows in flatlist]
+        print(listoflengths)
+        for i in range(1, len(updatedsortedkeys)-1):
+            for j in range(1, len(arraylist[i])-1):
+                print ("%d, %d"%(i,j))
+                if abs(arraylist[i][j-1] - arraylist[i][j-1]) > self.GRAD:
+                    outliers.append([i, j, "Freq", updatedsortedkeys[i], arraylist[i][j], abs(arraylist[i][j] - arraylist[i][j-1])])
+                if (j < len(arraylist[i-1])-1) and (abs((arraylist[i][j] - arraylist[i-1][j]) / (updatedsortedkeys[i] - updatedsortedkeys[i-1])) > self.GRAD):
+                    outliers.append([i, j, "Time", updatedsortedkeys[i], arraylist[i][j], abs(arraylist[i][j] - arraylist[i-1][j])])
+
+        new_outliers = sorted(outliers, key=itemgetter(4))
+        print(new_outliers)
+        #Only try nearest 5 items
+        # #Stop once we have identified two n_neighbours
+        # for i in range(2, len(sortedkeys)-2):
+        #     for j in range(2, len(arraylist[i])-2):
+        #         sum = 0
+        #         for counterj in [1,2]:
+        #             if np.sqrt((arraylist[i][j-counterj] - arraylist[i][j])**2 + counterj**2) < self.RADIUS:
+        #                 sum += 1
+        #             if np.sqrt((arraylist[i][j+counterj] - arraylist[i][j])**2 + counterj**2) < self.RADIUS:
+        #                 sum += 1
+        #         for counteri in [1,2]:
+        #             if (np.sqrt((arraylist[i-counteri][j] - arraylist[i][j])**2 + (updatedsortedkeys[i] - updatedsortedkeys[i-counteri])**2) < self.RADIUS:)
+        #                 sum += 1
+        #             if (np.sqrt((arraylist[i+counteri][j] - arraylist[i][j])**2 + (updatedsortedkeys[i] - updatedsortedkeys[i+counteri])**2) < self.RADIUS:)
+        #                 sum += 1
+        #         if (sum < 2):
+        #
+        #             outliers.append([i, j])
+        #
+        # print(outliers)
+
+        #listoflists = sorted([[int(key), value] for key, value in calgains.allx_obs_dict.items()])
+        #print(listoflists)
+        #xarray = [np.ravel(x) for x in listoflists]
+        #print(xarray)
+        #print(xarray)
+        #np.array(list(calgains.allx_obs_dict)))
+
 if __name__ == '__main__':
 
     calgains = rcd.CalGains_data()
@@ -120,9 +183,10 @@ if __name__ == '__main__':
     calgains.load_observationsfromFile(args.file) #assume single_tile is true
 
     flagger = Flagger()
-    Rx, Ry = flagger.DistanceMatrixCalculator(calgains)
-    xoutlier, youtlier = flagger.flag_measurements(Rx, Ry)
-    print("Xoutliers are:")
-    print(xoutlier)
-    print("Youtlier are:")
-    print(youtlier)
+    flagger.find_outliers(calgains)
+    #Rx, Ry = flagger.DistanceMatrixCalculator(calgains)
+    #xoutlier, youtlier = flagger.flag_measurements(Rx, Ry)
+    #print("Xoutliers are:")
+    #print(xoutlier)
+    #print("Youtlier are:")
+    #print(youtlier)

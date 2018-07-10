@@ -48,19 +48,28 @@ class Plotter:
             ylist.append(tiledata.ally_obs_dict[str(obs)][tile][channel])
 
         fig, ax1 = plt.subplots()
-        ax1.plot(timelist, xlist, color='green', marker='o')
-        ax1.plot(timelist, ylist, color='red', marker='o')
+        ax1.plot(timelist, xlist, color='green', marker='o',label='xx')
+        ax1.plot(timelist, ylist, color='red', marker='o', label='yy')
         ax1.set_title('Tile %d Channel %d' %(tile, channel))
         ax1.set_xlabel("Observation")
         ax1.set_ylabel("Amps")
+        ax1.legend(loc=0)
 
         if (metafits is not None):
-            pointings=[tiledata.metadata_dict[x][1] for x in sortedlist]
-            centchannels = [tiledata.metadata_dict[x][2] / 121.0 for x in sortedlist]
-
+            pointings=[float(tiledata.metadata_dict[str(x)][1]) / 8.0 for x in sortedlist]
+            centchannels = [float(tiledata.metadata_dict[str(x)][0]) / 121.0 for x in sortedlist]
+            print(pointings)
+            print(centchannels)
+            print(sortedlist)
+            print("Length of sortedlist is %d" %(len(sortedlist)))
+            print("Length of dict is %d" %(len(tiledata.metadata_dict)))
+            print(tiledata.metadata_dict[str(1065560600)])
+            print(tiledata.metadata_dict[str(1065560600)][1])
+            print(float(tiledata.metadata_dict[str(1065560600)][1]))
             ax2 = ax1.twinx()
-            ax2.plot(timelist, pointings, color='yellow', marker='o')
-            ax2.plot(timelist, centchannels, color='blue', marker='o')
+            ax2.plot(timelist, pointings, color='purple', marker='o', label='pointings')
+            ax2.plot(timelist, centchannels, color='blue', marker='o', label='cent channel')
+            ax2.legend(loc=0)
         if (output == 'save'):
             savefig('Amps_Channel_%s_Tile_%s.png' %(channel, tile), bbox_inches='tight')
         else:
