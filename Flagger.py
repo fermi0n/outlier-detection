@@ -89,7 +89,7 @@ class Flagger:
             Rx[str(obs)+':'+str(channel)] = {}
             Ry[str(obs)+':'+str(channel)] = {}
         for counter, (obs, channel, x_amp, y_amp) in enumerate(amplitudes):
-            print ("Up to %d" %counter)
+            #print ("Up to %d" %counter)
             for obs2, channel2, x_amp2, y_amp2 in amplitudes[counter:]:
                 distancex, distancey = self.calc_distances([obs, channel, x_amp, y_amp], [obs2, channel2, x_amp2, y_amp2])
                 Rx[str(obs)+':'+str(channel)][str(obs2)+':'+ str(channel2)] = Rx[str(obs2)+':'+ str(channel2)][str(obs)+':'+str(channel)] = distancex
@@ -121,27 +121,27 @@ class Flagger:
         #print (df)
         sortedkeys = sorted(calgains.allx_obs_dict.iterkeys())
         flatlist = [calgains.allx_obs_dict[key] for key in sortedkeys]
-        print(flatlist)
+        #print(flatlist)
         arraylist = np.array(flatlist)
-        print(arraylist)
+        #print(arraylist)
         updatedsortedkeys = [(int(key) - int(sortedkeys[0])) / 248.0 for key in sortedkeys]
-        print(updatedsortedkeys)
+        #print(updatedsortedkeys)
 
         outliers = []
 
         #SIMPLIFIED MODEL!!! JUST FIND AREAS WHERE THE GRADIENT IN THE TIME OR THE FREQ DIRECTION IS > SOME values
         #First check if all lengths are the same
         listoflengths = [len(rows) for rows in flatlist]
-        print(listoflengths)
+        #print(listoflengths)
         for i in range(1, len(updatedsortedkeys)-1):
             for j in range(1, len(arraylist[i])-1):
-                print ("%d, %d"%(i,j))
-                if abs(arraylist[i][j-1] - arraylist[i][j-1]) > self.GRAD:
-                    outliers.append([i, j, "Freq", updatedsortedkeys[i], arraylist[i][j], abs(arraylist[i][j] - arraylist[i][j-1])])
+                #print ("%d, %d"%(i,j))
+                if abs(arraylist[i][j] - arraylist[i][j-1]) > self.GRAD:
+                    outliers.append([i, j, "Freq", sortedkeys[i], updatedsortedkeys[i], arraylist[i][j], abs(arraylist[i][j] - arraylist[i][j-1])])
                 if (j < len(arraylist[i-1])-1) and (abs((arraylist[i][j] - arraylist[i-1][j]) / (updatedsortedkeys[i] - updatedsortedkeys[i-1])) > self.GRAD):
-                    outliers.append([i, j, "Time", updatedsortedkeys[i], arraylist[i][j], abs(arraylist[i][j] - arraylist[i-1][j])])
+                    outliers.append([i, j, "Time", sortedkeys[i], updatedsortedkeys[i], arraylist[i][j], abs(arraylist[i][j] - arraylist[i-1][j])])
 
-        new_outliers = sorted(outliers, key=itemgetter(4))
+        new_outliers = sorted(outliers, key=itemgetter(6), reverse=True)
         print(new_outliers)
         #Only try nearest 5 items
         # #Stop once we have identified two n_neighbours

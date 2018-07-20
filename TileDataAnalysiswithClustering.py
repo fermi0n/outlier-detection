@@ -5,6 +5,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as ss
+from sklearn.cluster import DBSCAN
 import scipy.spatial.distance as ssd
 from core import kshape, zscore, _sbd
 from operator import itemgetter
@@ -15,6 +16,7 @@ import argparse
 import pickle
 import itertools
 import time
+import pandas as pd
 
 ##Reference set obsIDs: 1061316296 (high-band) and 1127246440 (low-band)
 
@@ -84,7 +86,7 @@ class DataAnalyserByTile:
     def TileDistanceMatrixCalculator(self):
 
         listoftiles = []
-        print self.obs_list
+        #print (self.obs_list)
         for obs in self.obs_list:
             if len([x for x in self.allx_obs_dict[obs] if np.isnan(x)]) > 0:
                 print("Obs %s has NaNs"%obs)
@@ -93,18 +95,21 @@ class DataAnalyserByTile:
                 if (obs not in self.NaN_list):
                     print("Obs %s has NaNs"%obs)
                     self.NaN_list.append(obs)
+            if len(self.allx_obs_dict[obs]) == 0 or len(self.ally_obs_dict[obs]) == 0:
+                self.obs_list.remove(obs)
+                self.problem_obs_list.append(obs)
 
         for obs in self.NaN_list:
             self.obs_list.remove(obs)
 
         for obs in self.obs_list:
             listoftiles.append([obs] +  [self.allx_obs_dict[obs] + self.ally_obs_dict[obs]])
-        print ("NaN list is")
-        print(self.NaN_list)
-        print("Obs list is")
-        print(self.obs_list)
-        print("List of tiles is")
-        print([obs for obs, value in listoftiles])
+        #print ("NaN list is")
+        #print(self.NaN_list)
+        #print("Obs list is")
+        #print(self.obs_list)
+        #print("List of tiles is")
+        #print([obs for obs, value in listoftiles])
 
         #Then create a matrix of tile->tile distances
         #GOing to change this to be a dict of dicts!!
@@ -131,8 +136,8 @@ class DataAnalyserByTile:
         #Now, we need to follow the hierarchical clustering algorithm
         #clusternums = len(self.obs_list)
         clusterlist = [[obs] for obs in self.obs_list]
-        print ("Initial clusterlist is")
-        print(clusterlist)
+        #print ("Initial clusterlist is")
+        #print(clusterlist)
         listofsilhouettes = {}
         listofclusters = {}
         while (len(clusterlist) >= 2):
@@ -178,10 +183,41 @@ class DataAnalyserByTile:
         return listofsilhouettes, listofclusters
 
 
-    def TileDBScanClustering(self, epsilon):
-        #Assume that the distance matrix has already been created
+    def TileDBScanClustering(self, epsilon=0.005, minsamples=1):
+        #Create the distance matrix
+        self.TileDistanceMatrixCalculator()
         R = self.distancematrix_dict
+        #print(R)
+        df = pd.DataFrame.from_dict(R)
+        #print(df)
+        db = DBSCAN(eps=epsilon, min_samples=minsamples, metric='precomputed')
+        arr = db.fit_predict(df)
 
+        cluster_labels = db.labels_
+        num_clusters = len(set(cluster_labels))
+        clusters = pd.Series([df[cluster_labels == n] for n in range(num_clusters)])
+        #print('Number of clusters: %d'%num_clusters)
+        #print(clusters)
+
+        cluster_list = []
+        for n in range(num_clusters):
+            i = np.nonzero(cluster_labels == n)
+            array = df.columns.values[i]
+            #array = [df.columns.values[i] for i in np.nonzero(cluster_labels == n)]
+        #    print(list(array))
+            cluster_list.append(list(array))
+
+        uni, counts = np.unique(arr, return_counts=True)
+        d = dict(zip(uni, counts))
+        #print (d)
+        #
+        # print()
+        # print(np.nonzero(cluster_labels == 0))
+        # print(np.nonzero(cluster_labels == 1))
+        # print(np.nonzero(cluster_labels == 2))
+        # print(np.nonzero(cluster_labels == 3))
+        return (cluster_list)
+        #df.to_csv('dataframe.csv')
 
 
 #TODO: NEED TO MODIFY THIS SUCH THAT IT USES THE NEW VERSION (READCALSDOM)
@@ -210,6 +246,7 @@ class DataAnalyserByTile:
 
         for line in f:
             values = line.split(',')
+            if not len(values[3:-1]) > 2: continue
             if (values[0] not in self.obs_list):
                 self.obs_list.append(values[0])
             if values[2] == "X":
@@ -222,7 +259,15 @@ class DataAnalyserByTile:
 
     def plotCluster(self, cluster, silhouette, clustername, saveflag=False):
 
+        print("In plotCluster, clustername: %s" %clustername)
         colours = ['#AE70ED','#FFB60B','#62A9FF','#59DF00']
+
+        print(cluster)
+        if len(cluster) == 0:
+            return
+        for ii in self.obs_list:
+            if len(self.allx_obs_dict[ii]) == 0 or len(self.ally_obs_dict[ii]) == 0:
+                print("issue with %s"%ii)
 
     #    maxv = 10.0
         maxv = max(max([max(self.allx_obs_dict[ii]) for ii in self.obs_list]), max([max(self.ally_obs_dict[ii]) for ii in self.obs_list]))
@@ -238,7 +283,7 @@ class DataAnalyserByTile:
         #For each set of 128 observations:
         it = iter(observations)
         listofobs = iter(lambda: tuple(itertools.islice(it, 128)), ())
-        print("In plotCluster")
+
     #    print listofobs
         for index, observations in enumerate(listofobs):
 

@@ -31,7 +31,7 @@ parser.add_option('--nogains', action="store_true", help="If flag set, don't sto
 (options, args) = parser.parse_args()
 
 obs_list = open(args[0]).readlines()
-obs_list = [[l.split()[0], l.split()[1]] for l in obs_list]
+obs_list = [[l.split()[0], l.split()[-1]] for l in obs_list]
 
 cal = 0
 
