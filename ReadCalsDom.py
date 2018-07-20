@@ -61,10 +61,10 @@ for val in obs_list:
     files = glob.glob('%s/data/%s/%s/*.fits' %(mwa_dir, obs, subdir))
     meta_file = fits.open(files[0])
 
-    #cent_chan = meta_file[0].header['CENTCHAN']
-    #gridnum = meta_file[0].header['GRIDNUM']
-    cent_chan = meta_file[1].data['CENTCHAN']
-    gridnum = meta_file[1].data['GRIDNUM']
+    cent_chan = meta_file[0].header['CENTCHAN']
+    gridnum = meta_file[0].header['GRIDNUM']
+    #cent_chan = meta_file[1].data['CENTCHAN']
+    #gridnum = meta_file[1].data['GRIDNUM']
     rts_inputs = meta_file[1].data['Input']
 
     cables = meta_file[1].data['Flavors']
@@ -81,7 +81,7 @@ for val in obs_list:
 
     ##Order of delays is XX1,YY1,XX2,YY2 etc so select just XX   (JUST DO XX FOR NOW, TODO: ADD YY)
     XX = arange(0,256,2).astype(int)
-
+    print(dipole_delays)
     ##If a delay is set to 32, the dipole is flagged
     tile_inds,dipole_flags = where(dipole_delays[XX,:] == 32)
 
@@ -93,6 +93,7 @@ for val in obs_list:
     #for tile in set(tile_flags):
         #flags_dict['Tile%d' %int(tile)] = []
 
+    print(zip(tile_flags, dipole_flags))
     ##Populate flags. Allows for more than one flag per tile
     for tilenum,dipole in zip(tile_flags,dipole_flags):
         flags_dict['Tile%d' %int(tilenum)].append(int(dipole))
