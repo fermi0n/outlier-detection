@@ -21,9 +21,12 @@ class Plotter:
 
         maxv = max (max(tiledata.allx_obs_dict[obs][tile], tiledata.ally_obs_dict[obs][tile]))
 
-        plt.plot(tiledata.allx_obs_dict[obs][tile], colours[1])
-        plt.plot(tiledata.ally_obs_dict[obs][tile], colours[2])
-        plt.title('Tile %d' %tile)
+        plt.plot(tiledata.allx_obs_dict[obs][tile], colours[1], label='XX')
+        plt.plot(tiledata.ally_obs_dict[obs][tile], colours[2], label='YY')
+        plt.title('Tile %d, Observation %s' %(tile, obs))
+        plt.xlabel('Channel')
+        plt.ylabel('Gains Amplitude')
+        plt.legend()
 
         if (output == 'save'):
             savefig('Amps_Obs_%s_Tile_%s.png' %(obs, tile), bbox_inches='tight')
@@ -51,21 +54,21 @@ class Plotter:
         ax1.plot(timelist, xlist, color='green', marker='o',label='xx')
         ax1.plot(timelist, ylist, color='red', marker='o', label='yy')
         ax1.set_title('Tile %d Channel %d' %(tile, channel))
-        ax1.set_xlabel("Observation")
-        ax1.set_ylabel("Amps")
+        ax1.set_xlabel("Observation ID (time) in 248-sec chunks from %d" %sortedlist[0])
+        ax1.set_ylabel("Amplitudes")
         ax1.legend(loc=0)
 
         if (metafits is not None):
             pointings=[float(tiledata.metadata_dict[str(x)][1]) / 8.0 for x in sortedlist]
             centchannels = [float(tiledata.metadata_dict[str(x)][0]) / 121.0 for x in sortedlist]
-            print(pointings)
-            print(centchannels)
-            print(sortedlist)
-            print("Length of sortedlist is %d" %(len(sortedlist)))
-            print("Length of dict is %d" %(len(tiledata.metadata_dict)))
-            print(tiledata.metadata_dict[str(1065560600)])
-            print(tiledata.metadata_dict[str(1065560600)][1])
-            print(float(tiledata.metadata_dict[str(1065560600)][1]))
+            # print(pointings)
+            # print(centchannels)
+            # print(sortedlist)
+            # print("Length of sortedlist is %d" %(len(sortedlist)))
+            # print("Length of dict is %d" %(len(tiledata.metadata_dict)))
+            # print(tiledata.metadata_dict[str(1065560600)])
+            # print(tiledata.metadata_dict[str(1065560600)][1])
+            # print(float(tiledata.metadata_dict[str(1065560600)][1]))
             ax2 = ax1.twinx()
             ax2.plot(timelist, pointings, color='purple', marker='o', label='pointings')
             ax2.plot(timelist, centchannels, color='blue', marker='o', label='cent channel')
@@ -108,7 +111,7 @@ class Plotter:
             if sp == 15:
                 XX_amp, = ax.plot([],[], colours[1],label='XX',linewidth=3.0)
                 YY_amp, = ax.plot([],[], colours[2],label='YY',linewidth=3.0)
-                ax.legend((XX_amp,YY_amp),('XX','YY'), bbox_to_anchor=(0, 2, .12, .12),prop={'size':14})
+                ax.legend((XX_amp,YY_amp),('XX','YY'), bbox_to_anchor=(0, 2, .12, .12),prop={'size':10})
 
             sp += 1
 

@@ -78,7 +78,7 @@ class KNNAnalysis:
 
         #First create an array of tile amplitudes
         listoftiles = []
-        print tileloader.obs_list
+        print (tileloader.obs_list)
         for obs in tileloader.obs_list:
             listoftiles.extend([[obs, i] + [tileloader.allx_obs_dict[obs][i] + tileloader.ally_obs_dict[obs][i]] for i in range(128)])
 
@@ -92,7 +92,7 @@ class KNNAnalysis:
                 listofscores.append([obs, tileindex, obs2, tileindex2] + [DistanceMeasures.KShapeDistance(tilevalue, tilevalue2)])
             R.append(listofscores)
 
-        print R[23]
+        print (R[23])
         #Then sum the distances of each tile to other tiles (Note: this will give global anomalies, not local - i.e. won't take clustering into account)
         distances = []
         for line in R:
