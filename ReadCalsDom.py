@@ -33,6 +33,8 @@ parser.add_option('--nogains', action="store_true", help="If flag set, don't sto
 obs_list = open(args[0]).readlines()
 obs_list = [[l.split()[0], l.split()[-1]] for l in obs_list]
 
+print(obs_list)
+
 cal = 0
 
 if(options.mwa_dir is None):
@@ -95,19 +97,19 @@ for val in obs_list:
 
     print(zip(tile_flags, dipole_flags))
     ##Populate flags. Allows for more than one flag per tile
-    for tilenum,dipole in zip(tile_flags,dipole_flags):
-        flags_dict['Tile%d' %int(tilenum)].append(int(dipole))
+    #for tilenum,dipole in zip(tile_flags,dipole_flags):
+    #    flags_dict['Tile%d' %int(tilenum)].append(int(dipole))
 
-    print(flags_dict)
+    #print(flags_dict)
     #If flagged to save the metadata
     if (options.metadata):
         f = open("metadata-" + str(tile) + ".txt", "a")
         f.write("%s,%s,%s\n" %(obs, cent_chan, gridnum))
-	if 'Tile%s'%tile in flags_dict:
-            f.write("Tile %d," %tile)
-       	    for dipole in flags_dict.get('Tile%s'%tile):
-                f.write("%d," %dipole)
-            f.write("\n")
+#	if 'Tile%s'%tile in flags_dict:
+#            f.write("Tile %d," %tile)
+#       	    for dipole in flags_dict.get('Tile%s'%tile):
+#                f.write("%d," %dipole)
+#            f.write("\n")
         f.flush()
         f.close()
     #If not flagged to skip the gains
