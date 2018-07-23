@@ -84,20 +84,20 @@ for val in obs_list:
     raw_cal = RTS_cals.rts_cal()
 
     ##Order of delays is XX1,YY1,XX2,YY2 etc so select just XX   (JUST DO XX FOR NOW, TODO: ADD YY)
-    XX = arange(0,256,2).astype(int)
-    print(dipole_delays)
+    #XX = arange(0,256,2).astype(int)
+    #print(dipole_delays)
     ##If a delay is set to 32, the dipole is flagged
-    tile_inds,dipole_flags = where(dipole_delays[XX,:] == 32)
+    #tile_inds,dipole_flags = where(dipole_delays[XX,:] == 32)
 
-    tile_flags = tilenames[tile_inds]
+    #tile_flags = tilenames[tile_inds]
 
     ##Make flags direction
-    flags_dict = {}
+    #flags_dict = {}
     ##Set up lists to contain flags for tiles
     #for tile in set(tile_flags):
         #flags_dict['Tile%d' %int(tile)] = []
 
-    print(zip(tile_flags, dipole_flags))
+    #print(zip(tile_flags, dipole_flags))
     ##Populate flags. Allows for more than one flag per tile
     #for tilenum,dipole in zip(tile_flags,dipole_flags):
     #    flags_dict['Tile%d' %int(tilenum)].append(int(dipole))
