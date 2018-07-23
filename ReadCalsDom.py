@@ -133,7 +133,9 @@ for val in obs_list:
         print("Couldn't load dat files. Aborting for %s"%obs)
         print e
         continue
-    except:
+    except Exception as e:
+        print("Some other exception. Aborting for %s"%obs)
+        print(e)
         continue
 
 
