@@ -144,7 +144,7 @@ for val in obs_list:
     # helper function which loads all of the gains into a single list per
     # antenna
 
-    print("Loading and writing into observations file for %s"%obs)
+    print("Loading and writing into observations file %s for %s"%(str(tile), obs))
     for i,a in enumerate(raw_cal.antennas):
 #    i = options.tile
         #Do things in a hacked way just to try to not modify Bart's script as much as possible
@@ -173,3 +173,5 @@ for val in obs_list:
             f.write("\n")
             f.flush()
             f.close()
+
+    print("Loaded and wrote into observations file %s for %s"%(str(tile), obs))
