@@ -60,6 +60,8 @@ for val in obs_list:
         subdir = options.subdir
 
     obs = val[0]
+    print("Doing %s"%obs)
+
     files = glob.glob('%s/data/%s/%s/*.fits' %(mwa_dir, obs, subdir))
     meta_file = fits.open(files[0])
 
@@ -128,7 +130,7 @@ for val in obs_list:
         # Forms a product of the BP and DI Jones terms
         raw_cal.form_single_jones()
     except IOError as e:
-        print("Couldn't load this one")
+        print("Couldn't load dat files. Aborting for %s"%obs)
         print e
         continue
     except:
@@ -140,6 +142,7 @@ for val in obs_list:
     # helper function which loads all of the gains into a single list per
     # antenna
 
+    print("Loading and writing into observations file for %s"%obs)
     for i,a in enumerate(raw_cal.antennas):
 #    i = options.tile
         #Do things in a hacked way just to try to not modify Bart's script as much as possible
