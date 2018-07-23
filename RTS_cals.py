@@ -156,16 +156,16 @@ class rts_cal():
                 self.antennas[idx].form_single_jones()
 
     def load_all_BP_jones(self,path='./',raw=False,add_flagged=True):
-        #n_bands = 24
+        n_bands = 24
         #TODO: MOdified to handle low-band data (only 20 coarse channels)
-        n_bands = 20
+        #n_bands = 20
         for i in range(1,n_bands+1):
             self.load_BP_jones(i,path=path,raw=raw,add_flagged=add_flagged)
 
     def load_all_DI_jones(self,path='./',filename='DI_JonesMatrices_node'):
-        #n_bands = 24
+        n_bands = 24
         #TODO: Modified to handle low-band data (only 20 coarse channels)
-        n_bands = 20
+        #n_bands = 20
         for i in range(1,n_bands+1):
             self.load_DI_jones(i,path=path,filename=filename)
 
