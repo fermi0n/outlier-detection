@@ -4,7 +4,7 @@ from astropy.io import fits
 class rts_cal():
     def __init__(self):
         self.n_ants = 128
-        self.n_bands = 20
+        self.n_bands = 24  #Not sure about this
         self.antennas=[]
         self.flagged_antennas = None
         for i in range(self.n_ants):

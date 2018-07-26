@@ -326,6 +326,7 @@ class DataAnalyserByTile:
                 plt.savefig('%s-%d.png'%(clustername, index))
             else:
                 plt.show()
+            plt.close()
 
     def plotDistancesHeatMap(self, listofclusters, listoftiles, name='', saveflag=False):
 

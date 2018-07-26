@@ -59,7 +59,7 @@ class CalsLoader:
 
 		tmp1 = string.split( lines[1], ',' )
 		if len(lines)==0:
-			print "Erorr reading DI jones matrix file: line 1 does not appear to have 8 columns."
+			print "Error reading DI jones matrix file: line 1 does not appear to have 8 columns."
 			sys.exit(0)
 		J0[0,0] = float(tmp1[0]) + float(tmp1[1])*1j
 		J0[0,1] = float(tmp1[2]) + float(tmp1[3])*1j
