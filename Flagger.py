@@ -46,17 +46,17 @@ class Flagger:
         average = np.mean(densityx.values())
         stdev = np.std(densityx.values())
         xoutliers = [x for x in densityx if (abs(x-average) >= 2.0*stdev)]
-        print xoutliers
+        #print xoutliers
         average = np.mean(densityy.values())
         stdev = np.std(densityy.values())
         youtliers = [y for y in densityy if (abs(y-average) >= 2.0*stdev)]
-        print youtliers
+        #print youtliers
         return xoutliers, youtliers
 
     def DistanceMatrixCalculator(self, cals_data):
 
         amplitudes = []
-        print cals_data.obs_list
+        print (cals_data.obs_list)
         self.obs_list = sorted(cals_data.obs_list)
 
         for obs in cals_data.obs_list:
@@ -121,7 +121,7 @@ class Flagger:
         else:
             obs_dict = calgains.ally_obs_dict
 
-        sortedkeys = sorted(obs_dict.iterkeys())
+        sortedkeys = sorted(obs_dict.keys())
         flatlist = [obs_dict[key] for key in sortedkeys]
         #print(flatlist)
         arraylist = np.array(flatlist)
@@ -264,7 +264,7 @@ if __name__ == '__main__':
     #First get the top N outliers (start with all)
     #Then for that,create a 2D numpy array with channel vs time, and the value being the sum (absolute) of the gradients across all tiles
     numpyarray = np.zeros((len(calgains.obs_list), 700))
-    print(outliersdict)
+    #print(outliersdict)
     for outlier_dict in [xoutliersdict, youtliersdict]:  #Note: We aren't printing whether its X or Y - since it doesn't matter, it is just flagged
         for (outliers, observations) in outlier_dict.values():
 
@@ -272,7 +272,7 @@ if __name__ == '__main__':
                 try:
                     numpyarray[obsindex][channel] += abs(gradient)
                     print ("Added %f" %abs(gradient))
-                    outputfile.write("%s %d"%(obsid, channel))
+                    outputfile.write("%s, %d\n"%(obsid, channel))
 
                 except IndexError as ie:
                     print(ie)
@@ -280,9 +280,6 @@ if __name__ == '__main__':
 
         print(numpyarray)
 
-    outliers, observations = outliersdict['30']
-    for (obsindex, _, _, obsid, _, _, _) in outliers:
-        print('Index %d OBSID %s' %(obsindex, obsid))
     fig, ax = plt.subplots(1, 1)
     cax = ax.imshow(numpyarray, cmap='viridis', interpolation='nearest', origin='lower')
     ax.set_xlabel('channel')
